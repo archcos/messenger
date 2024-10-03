@@ -8,7 +8,7 @@ class MainApplication:
         self.master = master
         self.pc_name = pc_name
         master.title("Main Page")
-        master.iconbitmap("logo.ico")
+        # master.iconbitmap("logo.ico")
         
         self.pc_name_label = tk.Label(master, text=f"PC Name: {self.pc_name}", font=("Arial", 14))
         self.pc_name_label.pack(pady=10)
@@ -37,7 +37,7 @@ class MainApplication:
         send_button = tk.Button(self.chat_frame, text="Send", command=self.send_message)
         send_button.pack(pady=5)
 
-        self.server_address = ('192.168.50.219', 12345)
+        self.server_address = ('192.168.50.219', 12345)  # Change to your server's IP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Start a thread for the server connection
@@ -47,6 +47,8 @@ class MainApplication:
         try:
             self.socket.connect(self.server_address)
             self.update_chat_history("Connected to server!\n")
+            # Start receiving messages
+            threading.Thread(target=self.receive_messages, daemon=True).start()
         except Exception as e:
             self.update_chat_history(f"Failed to connect to server: {e}\n")
 
@@ -59,14 +61,32 @@ class MainApplication:
     def send_message(self):
         message = self.message_entry.get()
         if message:
-            self.update_chat_history(f"{self.pc_name}: {message}\n")
+            full_message = f"{self.pc_name}: {message}"
+            self.update_chat_history(full_message + "\n")
             self.message_entry.delete(0, tk.END)
-
-            # Send the message to the server in a separate thread
-            threading.Thread(target=self.send_to_server, args=(message,), daemon=True).start()
+            # Send the message to the server
+            threading.Thread(target=self.send_to_server, args=(full_message,), daemon=True).start()
 
     def send_to_server(self, message):
         try:
-            self.socket.sendall(message.encode())
+            self.socket.sendall(message.encode('utf-8'))
         except Exception as e:
             self.update_chat_history(f"Error sending message: {e}\n")
+
+    def receive_messages(self):
+        while True:
+            try:
+                message = self.socket.recv(1024).decode('utf-8')
+                if message:
+                    self.update_chat_history(message + "\n")
+                else:
+                    break
+            except Exception as e:
+                print(f"Error receiving message: {e}")
+                break
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    pc_name = "User"  # You can change this or ask the user for input
+    app = MainApplication(root, pc_name)
+    root.mainloop()

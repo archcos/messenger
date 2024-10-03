@@ -1,20 +1,17 @@
 import tkinter as tk
 from tkinter import messagebox
 import bcrypt
-import os
-import socket  # Import socket library
-from PIL import Image, ImageTk  # Import Image and ImageTk for loading images
+import socket
+from main import MainApplication  # Make sure main.py is accessible
 
 # Predefined admin credentials (hashed for security)
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD_HASH = bcrypt.hashpw("13952".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 def authenticate_admin(username, password):
-    """Authenticate admin using the provided username and password."""
     return username == ADMIN_USERNAME and bcrypt.checkpw(password.encode('utf-8'), ADMIN_PASSWORD_HASH.encode('utf-8'))
 
 def login():
-    """Handle login logic."""
     username = username_entry.get()
     password = password_entry.get()
 
@@ -25,20 +22,15 @@ def login():
         messagebox.showerror("Login", "Invalid username or password")
 
 def open_main_window():
-    """Open the main application window for the Admin."""
-    # Close the login window
-    login_window.destroy()
+    login_window.destroy()  # Close the login window
 
-    # Create the main application window
     main_window = tk.Tk()
     main_window.title("Main Application")
 
-    # Get the PC name
-    pc_name = socket.gethostname()
+    pc_name = socket.gethostname()  # Get the PC name
 
     # Initialize the main application
-    import main  # Import main.py here for the Admin
-    main_app = main.MainApplication(main_window, pc_name)
+    app = MainApplication(main_window, pc_name)
     main_window.mainloop()
 
 # Create login window
