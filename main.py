@@ -37,7 +37,7 @@ class MainApplication:
         send_button = tk.Button(self.chat_frame, text="Send", command=self.send_message)
         send_button.pack(pady=5)
 
-        self.server_address = ('192.168.50.219', 12345)  # Change to your server's IP
+        self.server_address = ('172.16.10.155', 12345)  # Change to your server's IP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Start a thread for the server connection

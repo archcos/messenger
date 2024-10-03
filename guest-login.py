@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 import os
+import socket
 from main import MainApplication  # Import MainApplication class from main.py
 
 def start_client():
@@ -9,7 +10,10 @@ def start_client():
 
     # Create a new Tkinter window for the main application
     main_window = tk.Tk()
-    app = MainApplication(main_window, "Guest PC")  # Pass a PC name or any identifier
+    pc_name = socket.gethostname()  # Get the PC name
+
+    # Initialize the main application
+    app = MainApplication(main_window, pc_name) # Pass a PC name or any identifier
     main_window.mainloop()  # Start the main application loop
 
 def login():
