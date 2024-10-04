@@ -51,7 +51,7 @@ def remove(client_socket):
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('0.0.0.0', 12345))
+    server.bind(('0.0.0.0', 53214))
     server.listen(5)
     print("Server started, waiting for connections...")
 
