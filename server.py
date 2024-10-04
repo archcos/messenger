@@ -21,7 +21,7 @@ def handle_client(client_socket):
                 elif message.startswith("/ismsg"):
                     # Send message to admin if it's a private message
                     if admin_socket:
-                        admin_socket.send(message[6:].encode('utf-8'))  # Send message content without the command
+                        admin_socket.send(f"/ismsg {username}: {message[6:]}".encode('utf-8'))
                 else:
                     broadcast(message, client_socket)
             else:
@@ -44,39 +44,35 @@ def broadcast(message, client_socket):
                 remove(client)
 
 def add_timestamp(message):
-    """Add a timestamp to the message."""
     current_time = datetime.now().strftime("%H:%M:%S")
     return f"{current_time} {message}"
 
 def send_user_list(client_socket):
-    """Send the list of online users to the requesting client."""
-    online_users = [f"{username}" for username, _ in clients.values()]
+    online_users = [username for username, _ in clients.values()]
     user_list_message = "Online Users:\n" + "\n".join(online_users)
     client_socket.send(("/users " + user_list_message).encode('utf-8'))
 
 def remove(client_socket):
     if client_socket in clients:
-        username, addr = clients.pop(client_socket)  # Get username and address
-        # Notify other clients of the disconnection
+        username, addr = clients.pop(client_socket)
         disconnection_message = f"{username} has left the chat"
         broadcast(disconnection_message, client_socket)
-        print(f"{username} from {addr} has disconnected.")  # Log disconnection on the server
+        print(f"{username} from {addr} has disconnected.")
 
 def start_server():
     global admin_socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('0.0.0.0', 53214))  # Use the appropriate IP and port
+    server.bind(('0.0.0.0', 53214))
     server.listen(5)
     print("Server started, waiting for connections...")
 
     while True:
         client_socket, addr = server.accept()
-        clients[client_socket] = (None, addr)  # Temporarily store the address
+        clients[client_socket] = (None, addr)
         print(f"Connection from {addr} has been established!")
 
-        # Check if this is the IS Admin connecting
         if not admin_socket:
-            admin_socket = client_socket  # Assign the first connected client as the admin
+            admin_socket = client_socket
             print("Admin has connected.")
             threading.Thread(target=handle_client, args=(client_socket,)).start()
         else:

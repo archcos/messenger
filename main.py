@@ -39,13 +39,10 @@ class MainApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('172.16.10.155', 53214)  # Update with your server address
+        self.server_address = ('172.16.10.155', 53214) 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         threading.Thread(target=self.connect_to_server, daemon=True).start()
-
-        # For admin chat window
-        self.is_chat_window = None
 
     def connect_to_server(self):
         try:
@@ -108,24 +105,24 @@ class MainApplication:
         close_button.pack(pady=5)
 
     def open_is_chat(self):
-        if self.is_chat_window is None or not self.is_chat_window.winfo_exists():
-            self.is_chat_window = tk.Toplevel(self.master)
-            self.is_chat_window.title("Chat with IS Admin")
+        # Create a new pop-up window for IS Admin chat
+        self.is_chat_window = tk.Toplevel(self.master)
+        self.is_chat_window.title("Chat with IS Admin")
 
-            self.is_chat_history = scrolledtext.ScrolledText(self.is_chat_window, state='disabled')
-            self.is_chat_history.pack(fill='both', expand=True)
+        self.is_chat_history = scrolledtext.ScrolledText(self.is_chat_window, state='disabled')
+        self.is_chat_history.pack(fill='both', expand=True)
 
-            self.is_message_entry = tk.Entry(self.is_chat_window)
-            self.is_message_entry.pack(fill='x', padx=5, pady=5)
+        self.is_message_entry = tk.Entry(self.is_chat_window)
+        self.is_message_entry.pack(fill='x', padx=5, pady=5)
 
-            send_button = tk.Button(self.is_chat_window, text="Send", command=self.send_is_message)
-            send_button.pack(pady=5)
+        send_button = tk.Button(self.is_chat_window, text="Send", command=self.send_is_message)
+        send_button.pack(pady=5)
 
-            self.is_message_entry.bind("<Return>", lambda event: self.send_is_message())
+        self.is_message_entry.bind("<Return>", lambda event: self.send_is_message())
 
-            # Notify IS Admin about the chat request
-            message = f"/ismsg {self.username} wants to chat"
-            self.send_to_server(message)
+        # Notify IS Admin about the chat request
+        message = f"/ismsg {self.username} wants to chat"
+        self.send_to_server(message)
 
     def send_is_message(self):
         message = self.is_message_entry.get()
@@ -134,7 +131,7 @@ class MainApplication:
             full_message = f"{timestamp} [{self.username}]: {message}"
             self.update_is_chat_history(full_message + "\n")
             self.is_message_entry.delete(0, tk.END)
-            threading.Thread(target=self.send_to_server, args=(f"/ismsg {full_message}",), daemon=True).start()
+            threading.Thread(target=self.send_to_server, args=(f"/ismsg {full_message}"), daemon=True).start()
 
     def update_is_chat_history(self, message):
         self.is_chat_history.config(state='normal')
