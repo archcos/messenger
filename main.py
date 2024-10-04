@@ -1,24 +1,24 @@
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import scrolledtext, simpledialog
 import socket
 import threading
 
 class MainApplication:
     def __init__(self, master, username):
         self.master = master
-        self.username = username  # Store the username
+        self.username = username
         master.title("Main Page")
-        
+
         self.pc_name_label = tk.Label(master, text=f"Username: {self.username}", font=("Arial", 14))
         self.pc_name_label.pack(pady=10)
 
         self.side_panel = tk.Frame(master, width=150, bg='lightgrey')
         self.side_panel.pack(side='left', fill='y')
 
-        btn1 = tk.Button(self.side_panel, text="Chat")
+        btn1 = tk.Button(self.side_panel, text="Show Online Users", command=self.show_user_list)
         btn1.pack(pady=10)
 
-        btn2 = tk.Button(self.side_panel, text="Contact IS")
+        btn2 = tk.Button(self.side_panel, text="Contact IS", command=self.open_is_chat)
         btn2.pack(pady=10)
 
         btn3 = tk.Button(self.side_panel, text="Exit", command=master.quit)
@@ -36,20 +36,18 @@ class MainApplication:
         send_button = tk.Button(self.chat_frame, text="Send", command=self.send_message)
         send_button.pack(pady=5)
 
+        self.message_entry.bind("<Return>", lambda event: self.send_message())
+
         self.server_address = ('172.16.10.155', 12345)  # Change to your server's IP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        # Start a thread for the server connection
         threading.Thread(target=self.connect_to_server, daemon=True).start()
 
     def connect_to_server(self):
         try:
             self.socket.connect(self.server_address)
-            self.update_chat_history("Connected to server!\n")
-            # Send a join message
-            join_message = f"{self.username}"
-            self.send_to_server(join_message)  # Notify the server
-            # Start receiving messages
+            self.update_chat_history(f"Connected to server!\nWelcome {self.username}!\n")
+            self.socket.sendall(self.username.encode('utf-8'))  # Send username
             threading.Thread(target=self.receive_messages, daemon=True).start()
         except Exception as e:
             self.update_chat_history(f"Failed to connect to server: {e}\n")
@@ -63,10 +61,9 @@ class MainApplication:
     def send_message(self):
         message = self.message_entry.get()
         if message:
-            full_message = f"{self.username}: {message}"  # Include username in the message
+            full_message = f"{self.username}: {message}"
             self.update_chat_history(full_message + "\n")
             self.message_entry.delete(0, tk.END)
-            # Send the message to the server
             threading.Thread(target=self.send_to_server, args=(full_message,), daemon=True).start()
 
     def send_to_server(self, message):
@@ -79,16 +76,47 @@ class MainApplication:
         while True:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
-                if message:
-                    self.update_chat_history(message + "\n")
+                if message.startswith("/users"):
+                    self.receive_user_list(message[6:])
+                elif message.startswith("/ismsg"):
+                    self.show_is_chat(message[6:])  # Strip command and show message
                 else:
-                    break
+                    self.update_chat_history(message + "\n")
             except Exception as e:
                 print(f"Error receiving message: {e}")
                 break
 
+    def show_user_list(self):
+        self.send_to_server("/users")
+
+    def receive_user_list(self, user_list):
+        user_list_window = tk.Toplevel(self.master)
+        user_list_window.title("Online Users")
+        user_list_display = scrolledtext.ScrolledText(user_list_window, state='normal', height=10, width=30)
+        user_list_display.pack(padx=10, pady=10)
+        user_list_display.insert(tk.END, user_list)
+        user_list_display.config(state='disabled')
+        close_button = tk.Button(user_list_window, text="Close", command=user_list_window.destroy)
+        close_button.pack(pady=5)
+
+    def open_is_chat(self):
+        message = f"/ismsg {self.username} wants to chat"
+        self.send_to_server(message)
+
+    def show_is_chat(self, message):
+        is_chat_window = tk.Toplevel(self.master)
+        is_chat_window.title("Chat with IS Admin")
+
+        chat_display = scrolledtext.ScrolledText(is_chat_window, state='normal')
+        chat_display.pack(fill='both', expand=True)
+        chat_display.insert(tk.END, message + "\n")
+        chat_display.config(state='disabled')
+
+        close_button = tk.Button(is_chat_window, text="Close", command=is_chat_window.destroy)
+        close_button.pack(pady=5)
+
 if __name__ == "__main__":
     root = tk.Tk()
-    username = "User"  # You can change this or ask the user for input
+    username = simpledialog.askstring("Username", "Enter your username:")
     app = MainApplication(root, username)
     root.mainloop()

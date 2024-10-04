@@ -13,7 +13,10 @@ def handle_client(client_socket):
         try:
             message = client_socket.recv(1024).decode('utf-8')
             if message:
-                broadcast(message, client_socket)
+                if message == "/users":
+                    send_user_list(client_socket)  # Send user list on request
+                else:
+                    broadcast(message, client_socket)
             else:
                 break
         except Exception as e:
@@ -31,6 +34,12 @@ def broadcast(message, client_socket):
             except Exception as e:
                 print(f"Error sending message: {e}")
                 remove(client)
+
+def send_user_list(client_socket):
+    """Send the list of online users to the requesting client."""
+    online_users = [username for username, _ in clients.values()]
+    user_list_message = "Online Users:\n" + "\n".join(online_users)
+    client_socket.send(("/users " + user_list_message).encode('utf-8'))
 
 def remove(client_socket):
     if client_socket in clients:
