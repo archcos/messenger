@@ -32,6 +32,10 @@ def handle_client(client_socket):
                 elif message.startswith("/ismsg"):
                     if admin_socket:
                         admin_socket.send(f"Message from {username}: {message[6:]}".encode('utf-8'))  # Send the message content without the command
+                        # Send the message to the user who initiated the private chat
+                        for client in clients.keys():
+                            if clients[client][0] == message[6:].split(":")[0]:
+                                client.send(f"Message from IS Admin: {message[6:]}".encode('utf-8'))
                 else:
                     broadcast(message, client_socket)
             else:
@@ -76,7 +80,7 @@ def remove(client_socket):
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('0.0.0.0', 53214))
+ server.bind(('0.0.0.0', 53214))
     server.listen(5)
     print("Server started, waiting for connections...")
 
