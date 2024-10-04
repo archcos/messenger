@@ -41,7 +41,7 @@ class MainApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('172.16.10.155', 53214)
+        self.server_address = ('192.168.51.75', 53214)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         threading.Thread(target=self.connect_to_server, daemon=True).start()

@@ -9,8 +9,21 @@ def handle_client(client_socket):
     global admin_socket
     addr = client_socket.getpeername()  # Get the client's address
     username = client_socket.recv(1024).decode('utf-8')  # Receive the username first
-    clients[client_socket] = (username, addr)  # Store username and address
-    broadcast(f"{username} has joined the chat", client_socket)
+
+    # Check if the user is the admin
+    if username == "IS Admin":
+        if admin_socket is not None:
+            # Reject the new admin connection if one is already connected
+            client_socket.send("Admin is already connected. Please try again later.".encode('utf-8'))
+            client_socket.close()
+            return
+        admin_socket = client_socket  # Assign the socket to the admin
+        clients[client_socket] = (username, addr)  # Store admin's username and address
+        broadcast(f"{username} has joined the chat", client_socket)
+        print("Admin has connected.")
+    else:
+        clients[client_socket] = (username, addr)  # Store username and address for other clients
+        broadcast(f"{username} has joined the chat", client_socket)
 
     while True:
         try:
@@ -21,7 +34,7 @@ def handle_client(client_socket):
                 elif message.startswith("/ismsg"):
                     # Send message to admin if it's a private message
                     if admin_socket:
-                        admin_socket.send(f"/ismsg {username}: {message[6:]}".encode('utf-8'))
+                        admin_socket.send(message[6:].encode('utf-8'))  # Send message content without the command
                 else:
                     broadcast(message, client_socket)
             else:
@@ -44,23 +57,30 @@ def broadcast(message, client_socket):
                 remove(client)
 
 def add_timestamp(message):
+    """Add a timestamp to the message."""
     current_time = datetime.now().strftime("%H:%M:%S")
     return f"{current_time} {message}"
 
 def send_user_list(client_socket):
-    online_users = [username for username, _ in clients.values()]
+    """Send the list of online users to the requesting client."""
+    online_users = [f"{username}" for username, _ in clients.values()]
     user_list_message = "Online Users:\n" + "\n".join(online_users)
     client_socket.send(("/users " + user_list_message).encode('utf-8'))
 
 def remove(client_socket):
     if client_socket in clients:
-        username, addr = clients.pop(client_socket)
+        username, addr = clients.pop(client_socket)  # Get username and address
+        # Notify other clients of the disconnection
         disconnection_message = f"{username} has left the chat"
         broadcast(disconnection_message, client_socket)
-        print(f"{username} from {addr} has disconnected.")
+        print(f"{username} from {addr} has disconnected.")  # Log disconnection on the server
+        # If the admin disconnects, clear the admin socket
+        if client_socket == admin_socket:
+            print("Admin has disconnected.")
+            global admin_socket
+            admin_socket = None
 
 def start_server():
-    global admin_socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('0.0.0.0', 53214))
     server.listen(5)
@@ -68,15 +88,8 @@ def start_server():
 
     while True:
         client_socket, addr = server.accept()
-        clients[client_socket] = (None, addr)
         print(f"Connection from {addr} has been established!")
-
-        if not admin_socket:
-            admin_socket = client_socket
-            print("Admin has connected.")
-            threading.Thread(target=handle_client, args=(client_socket,)).start()
-        else:
-            threading.Thread(target=handle_client, args=(client_socket,)).start()
+        threading.Thread(target=handle_client, args=(client_socket,)).start()
 
 if __name__ == "__main__":
     start_server()
