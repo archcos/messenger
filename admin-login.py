@@ -3,7 +3,7 @@ from tkinter import messagebox
 import bcrypt
 import socket
 from PIL import Image, ImageTk  # Import Pillow for image handling
-from main import MainApplication  # Ensure main.py is accessible
+from admin_client import AdminApplication # Ensure admin-client.py is accessible
 
 # Predefined admin credentials (hashed for security)
 ADMIN_USERNAME = "tcoisd"
@@ -29,7 +29,7 @@ def open_main_window():
     main_window.title("Main Application")
 
     # Initialize the main application
-    app = MainApplication(main_window, "IS Admin")
+    app = AdminApplication(main_window)
     main_window.mainloop()
 
 # Create login window

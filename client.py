@@ -114,7 +114,7 @@ class MainApplication:
         self.is_message_entry = tk.Entry(self.is_chat_window)
         self.is_message_entry.pack(fill='x', padx=5, pady=5)
 
-        send_button = tk.Button(self.is_chat _window, text="Send", command=self.send_is_message)
+        send_button = tk.Button(self.is_chat_window, text="Send", command=self.send_is_message)
         send_button.pack(pady=5)
 
         self.is_message_entry.bind("<Return>", lambda event: self.send_is_message())

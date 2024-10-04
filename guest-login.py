@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import socket
 from PIL import Image, ImageTk  # Import Pillow for image handling
-from main import MainApplication  # Import MainApplication class from main.py
+from client import MainApplication  # Import MainApplication class from client.py
 
 def start_client(username):
     """Start the main application with the provided username."""
@@ -41,7 +41,7 @@ logo_label.pack()
 name_label = tk.Label(guest_login_window, text="LocalLinks", font=("Arial", 12, "bold", "italic"), fg="#C70000")
 name_label.pack()
 
-username_label = tk.Label(guest_login_window, text="Enter your username:", font=("Arial", 10))
+username_label = tk.Label(guest_login_window, text ="Enter your username:", font=("Arial", 10))
 username_label.pack(pady=10)
 
 username_entry = tk.Entry(guest_login_window, font=("Arial", 10), bg="#FFE6E6", borderwidth=2, relief="groove")

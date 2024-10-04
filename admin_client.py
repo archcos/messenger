@@ -49,34 +49,41 @@ class AdminApplication:
                 print(f"Error receiving message: {e}")
                 break
 
+    def send_message(self):
+        message = self.message_entry.get()
+        self.socket.send(message.encode('utf-8'))
+        self.update_chat_history("IS Admin: " + message + "\n")
+        self.message_entry.delete(0, 'end')
+
     def show_private_chat(self, message):
-        username = message.split(":")[0].split(" ")[-1]
+        # Create a new window for the private chat
         private_chat_window = tk.Toplevel(self.master)
-        private_chat_window.title(f"Private Chat with {username}")
+        private_chat_window.title("Private Chat")
 
-        private_chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled')
-        private_chat_history.pack(fill='both', expand=True)
+        chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled')
+        chat_history.pack(fill='both', expand=True)
 
-        private_message_entry = tk.Entry(private_chat_window)
-        private_message_entry.pack(fill='x', padx=5, pady=5)
+        message_entry = tk.Entry(private_chat_window)
+        message_entry.pack(fill='x', padx=5, pady=5)
 
-        send_button = tk.Button(private_chat_window, text="Send", command=lambda: self.send_private_message(private_message_entry, username))
+        send_button = tk.Button(private_chat_window, text="Send", command=lambda: self.send_private_message(private_chat_window, message_entry, chat_history))
         send_button.pack(pady=5)
 
-        private_message_entry.bind("<Return>", lambda event: self.send_private_message(private_message_entry, username))
+        message_entry.bind("<Return>", lambda event: self.send_private_message(private_chat_window, message_entry, chat_history))
 
-        private_chat_history.config(state='normal')
-        private_chat_history.insert(tk.END, message + "\n")
-        private_chat_history.config(state='disabled')
-        private_chat_history.see(tk.END)
+        # Display the private chat message
+        chat_history.config(state='normal')
+        chat_history.insert('end', message + "\n")
+        chat_history.config(state='disabled')
 
-    def send_private_message(self, private_message_entry, username):
-        message = private_message_entry.get()
-        if message:
-            full_message = f"Message from IS Admin: {message}"
-            private_message_entry.delete(0, tk.END)
-            self.socket.send(full_message.encode('utf-8'))
-
+    def send_private_message(self, private_chat_window, message_entry, chat_history):
+        message = message_entry.get()
+        self.socket.send(f"/private:{message_entry.get()}".encode('utf-8'))  # Send the private message
+        chat_history.config(state='normal')
+        chat_history.insert('end', "IS Admin: " + message + "\n")
+        chat_history.config(state='disabled')
+        message_entry.delete(0, 'end')
+        
     def update_chat_history(self, message):
         self.chat_history.config(state='normal')
         self.chat_history.insert(tk.END, message)
