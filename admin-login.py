@@ -27,10 +27,10 @@ def open_main_window():
     main_window = tk.Tk()
     main_window.title("Main Application")
 
-    pc_name = socket.gethostname()  # Get the PC name
+    # pc_name = socket.gethostname()  # Get the PC name
 
     # Initialize the main application
-    app = MainApplication(main_window, pc_name)
+    app = MainApplication(main_window, "IS Admin")
     main_window.mainloop()
 
 # Create login window

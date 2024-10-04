@@ -4,13 +4,12 @@ import socket
 import threading
 
 class MainApplication:
-    def __init__(self, master, pc_name):
+    def __init__(self, master, username):
         self.master = master
-        self.pc_name = pc_name
+        self.username = username  # Store the username
         master.title("Main Page")
-        # master.iconbitmap("logo.ico")
         
-        self.pc_name_label = tk.Label(master, text=f"PC Name: {self.pc_name}", font=("Arial", 14))
+        self.pc_name_label = tk.Label(master, text=f"Username: {self.username}", font=("Arial", 14))
         self.pc_name_label.pack(pady=10)
 
         self.side_panel = tk.Frame(master, width=150, bg='lightgrey')
@@ -47,6 +46,9 @@ class MainApplication:
         try:
             self.socket.connect(self.server_address)
             self.update_chat_history("Connected to server!\n")
+            # Send a join message
+            join_message = f"{self.username}"
+            self.send_to_server(join_message)  # Notify the server
             # Start receiving messages
             threading.Thread(target=self.receive_messages, daemon=True).start()
         except Exception as e:
@@ -61,7 +63,7 @@ class MainApplication:
     def send_message(self):
         message = self.message_entry.get()
         if message:
-            full_message = f"{self.pc_name}: {message}"
+            full_message = f"{self.username}: {message}"  # Include username in the message
             self.update_chat_history(full_message + "\n")
             self.message_entry.delete(0, tk.END)
             # Send the message to the server
@@ -87,6 +89,6 @@ class MainApplication:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    pc_name = "User"  # You can change this or ask the user for input
-    app = MainApplication(root, pc_name)
+    username = "User"  # You can change this or ask the user for input
+    app = MainApplication(root, username)
     root.mainloop()
