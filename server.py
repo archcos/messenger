@@ -31,7 +31,7 @@ def handle_client(client_socket):
                     send_user_list(client_socket)  # Send user list on request
                 elif message.startswith("/ismsg"):
                     if admin_socket:
-                        admin_socket.send(message[6:].encode('utf-8'))  # Send message content without the command
+                        admin_socket.send(f"Message from {username}: {message[6:]}".encode('utf-8'))  # Send the message content without the command
                 else:
                     broadcast(message, client_socket)
             else:
