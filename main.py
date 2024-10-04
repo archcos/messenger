@@ -110,7 +110,7 @@ class MainApplication:
         chat_display = scrolledtext.ScrolledText(is_chat_window, state='normal')
         chat_display.pack(fill='both', expand=True)
         chat_display.insert(tk.END, message + "\n")
-        chat_display.config(state='disabled')
+        chat_display.config(state='enable')
 
         close_button = tk.Button(is_chat_window, text="Close", command=is_chat_window.destroy)
         close_button.pack(pady=5)

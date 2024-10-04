@@ -25,7 +25,7 @@ def login():
 # Create guest login window
 guest_login_window = tk.Tk()
 guest_login_window.title("Guest Login")
-guest_login_window.iconbitmap("logo.ico")
+# guest_login_window.iconbitmap("logo.ico")
 
 # Username Entry
 username_label = tk.Label(guest_login_window, text="Enter your username:")
