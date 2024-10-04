@@ -41,7 +41,7 @@ class AdminApplication:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
                 if message:
-                    if message.startswith("Message from"):
+                    if message.startswith("Private message from"):
                         self.show_private_chat(message)  # Display the private chat message
                     else:
                         self.update_chat_history(message + "\n")
@@ -53,7 +53,7 @@ class AdminApplication:
         message = self.message_entry.get()
         self.socket.send(message.encode('utf-8'))
         self.update_chat_history("IS Admin: " + message + "\n")
-        self.message_entry.delete(0, 'end')
+        self.message_entry.delete(0, 'end ')
 
     def show_private_chat(self, message):
         # Create a new window for the private chat
@@ -83,7 +83,7 @@ class AdminApplication:
         chat_history.insert('end', "IS Admin: " + message + "\n")
         chat_history.config(state='disabled')
         message_entry.delete(0, 'end')
-        
+
     def update_chat_history(self, message):
         self.chat_history.config(state='normal')
         self.chat_history.insert(tk.END, message)

@@ -35,13 +35,13 @@ def handle_client(client_socket):
                         # Send the message to the user who initiated the private chat
                         for client in clients.keys():
                             if clients[client][0] == message[6:].split(":")[0]:
-                                client.send(f"Message from IS Admin: {message[6:]}".encode('utf-8'))
+                                client.send(f"Private message from IS Admin: {message[6:]}".encode('utf-8'))
                 elif message.startswith("/private"):
                     # Handle private messages
                     recipient = message.split(":")[1]
                     for client in clients.keys():
                         if clients[client][0] == recipient:
-                            client.send(f"Private message from {username}: {message.split(":")[2]}".encode('utf-8'))
+                            client.send(f"Private message from {username}: {message.split(':')[2]}".encode('utf-8'))
                 else:
                     broadcast(message, client_socket)
             else:
