@@ -3,8 +3,10 @@ import threading
 from datetime import datetime
 
 clients = {}  # Store client sockets with their usernames and addresses
+admin_socket = None  # To hold the admin socket
 
 def handle_client(client_socket):
+    global admin_socket
     addr = client_socket.getpeername()  # Get the client's address
     username = client_socket.recv(1024).decode('utf-8')  # Receive the username first
     clients[client_socket] = (username, addr)  # Store username and address
@@ -16,6 +18,10 @@ def handle_client(client_socket):
             if message:
                 if message == "/users":
                     send_user_list(client_socket)  # Send user list on request
+                elif message.startswith("/ismsg"):
+                    # Send message to admin if it's a private message
+                    if admin_socket:
+                        admin_socket.send(message[6:].encode('utf-8'))  # Send message content without the command
                 else:
                     broadcast(message, client_socket)
             else:
@@ -57,8 +63,9 @@ def remove(client_socket):
         print(f"{username} from {addr} has disconnected.")  # Log disconnection on the server
 
 def start_server():
+    global admin_socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('0.0.0.0', 53214))
+    server.bind(('0.0.0.0', 53214))  # Use the appropriate IP and port
     server.listen(5)
     print("Server started, waiting for connections...")
 
@@ -66,7 +73,14 @@ def start_server():
         client_socket, addr = server.accept()
         clients[client_socket] = (None, addr)  # Temporarily store the address
         print(f"Connection from {addr} has been established!")
-        threading.Thread(target=handle_client, args=(client_socket,)).start()
+
+        # Check if this is the IS Admin connecting
+        if not admin_socket:
+            admin_socket = client_socket  # Assign the first connected client as the admin
+            print("Admin has connected.")
+            threading.Thread(target=handle_client, args=(client_socket,)).start()
+        else:
+            threading.Thread(target=handle_client, args=(client_socket,)).start()
 
 if __name__ == "__main__":
     start_server()

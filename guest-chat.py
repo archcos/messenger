@@ -3,6 +3,7 @@ from tkinter import scrolledtext, simpledialog
 import socket
 import threading
 from datetime import datetime
+from PIL import Image, ImageTk  # Import Pillow for image handling
 
 class MainApplication:
     def __init__(self, master, username):
@@ -39,19 +40,16 @@ class MainApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('172.16.10.155', 53214)  # Update with your server address
+        self.server_address = ('172.16.10.155', 53214)  # Change to your server's IP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         threading.Thread(target=self.connect_to_server, daemon=True).start()
-
-        # For admin chat window
-        self.is_chat_window = None
 
     def connect_to_server(self):
         try:
             self.socket.connect(self.server_address)
             self.update_chat_history(f"Connected to server!\nWelcome {self.username}!\n")
-            self.socket.sendall(self.username.encode('utf-8'))
+            self.socket.sendall(self.username.encode('utf-8'))  # Send username
             threading.Thread(target=self.receive_messages, daemon=True).start()
         except Exception as e:
             self.update_chat_history(f"Failed to connect to server: {e}\n")
@@ -67,9 +65,8 @@ class MainApplication:
 
     def send_message(self):
         message = self.message_entry.get()
-        timestamp = self.get_timestamp()
         if message:
-            full_message = f"{timestamp} [{self.username}]: {message}"
+            full_message = f"{self.get_timestamp()} [{self.username}]: {message}"
             self.update_chat_history(full_message + "\n")
             self.message_entry.delete(0, tk.END)
             threading.Thread(target=self.send_to_server, args=(full_message,), daemon=True).start()
@@ -87,17 +84,14 @@ class MainApplication:
                 if message.startswith("/users"):
                     self.receive_user_list(message[6:])
                 elif message.startswith("/ismsg"):
-                    self.show_is_chat(message[6:])
+                    self.show_is_chat(message[6:])  # Strip command and show message
                 else:
                     self.update_chat_history(message + "\n")
             except Exception as e:
                 print(f"Error receiving message: {e}")
                 break
 
-    def show_user_list(self):
-        self.send_to_server("/users")
-
-    def receive_user_list(self, user_list):
+    def show_user_list(self, user_list):
         user_list_window = tk.Toplevel(self.master)
         user_list_window.title("Online Users")
         user_list_display = scrolledtext.ScrolledText(user_list_window, state='normal', height=10, width=30)
@@ -108,42 +102,35 @@ class MainApplication:
         close_button.pack(pady=5)
 
     def open_is_chat(self):
-        if self.is_chat_window is None or not self.is_chat_window.winfo_exists():
-            self.is_chat_window = tk.Toplevel(self.master)
-            self.is_chat_window.title("Chat with IS Admin")
-
-            self.is_chat_history = scrolledtext.ScrolledText(self.is_chat_window, state='disabled')
-            self.is_chat_history.pack(fill='both', expand=True)
-
-            self.is_message_entry = tk.Entry(self.is_chat_window)
-            self.is_message_entry.pack(fill='x', padx=5, pady=5)
-
-            send_button = tk.Button(self.is_chat_window, text="Send", command=self.send_is_message)
-            send_button.pack(pady=5)
-
-            self.is_message_entry.bind("<Return>", lambda event: self.send_is_message())
-
-            # Notify IS Admin about the chat request
-            message = f"/ismsg {self.username} wants to chat"
-            self.send_to_server(message)
-
-    def send_is_message(self):
-        message = self.is_message_entry.get()
-        timestamp = self.get_timestamp()
-        if message:
-            full_message = f"{timestamp} [{self.username}]: {message}"
-            self.update_is_chat_history(full_message + "\n")
-            self.is_message_entry.delete(0, tk.END)
-            threading.Thread(target=self.send_to_server, args=(f"/ismsg {full_message}",), daemon=True).start()
-
-    def update_is_chat_history(self, message):
-        self.is_chat_history.config(state='normal')
-        self.is_chat_history.insert(tk.END, message)
-        self.is_chat_history.config(state='disabled')
-        self.is_chat_history.see(tk.END)
+        message = f"/ismsg {self.username} wants to chat"
+        self.send_to_server(message)
 
     def show_is_chat(self, message):
-        self.update_is_chat_history(message + "\n")
+        is_chat_window = tk.Toplevel(self.master)
+        is_chat_window.title("Chat with IS Admin")
+
+        chat_display = scrolledtext.ScrolledText(is_chat_window, state='normal')
+        chat_display.pack(fill='both', expand=True)
+        chat_display.insert(tk.END, message + "\n")
+        chat_display.config(state='disabled')
+
+        message_entry = tk.Entry(is_chat_window)
+        message_entry.pack(fill='x', padx=5, pady=5)
+
+        send_button = tk.Button(is_chat_window, text="Send", command=lambda: self.send_is_message(message_entry, chat_display))
+        send_button.pack(pady=5)
+
+        message_entry.bind("<Return>", lambda event: self.send_is_message(message_entry, chat_display))
+
+    def send_is_message(self, message_entry, chat_display):
+        message = message_entry.get()
+        if message:
+            full_message = f"{self.get_timestamp()} [{self.username}]: {message}"
+            chat_display.config(state='normal')
+            chat_display.insert(tk.END, full_message + "\n")
+            chat_display.config(state='disabled')
+            message_entry.delete(0, tk.END)
+            threading.Thread(target=self.send_to_server, args=(full_message,), daemon=True).start()
 
 if __name__ == "__main__":
     root = tk.Tk()
