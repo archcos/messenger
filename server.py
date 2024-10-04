@@ -6,14 +6,12 @@ clients = {}  # Store client sockets with their usernames and addresses
 admin_socket = None  # To hold the admin socket
 
 def handle_client(client_socket):
-    global admin_socket
+    global admin_socket  # Declare it as global at the top of the function
     addr = client_socket.getpeername()  # Get the client's address
     username = client_socket.recv(1024).decode('utf-8')  # Receive the username first
 
-    # Check if the user is the admin
     if username == "IS Admin":
         if admin_socket is not None:
-            # Reject the new admin connection if one is already connected
             client_socket.send("Admin is already connected. Please try again later.".encode('utf-8'))
             client_socket.close()
             return
@@ -32,7 +30,6 @@ def handle_client(client_socket):
                 if message == "/users":
                     send_user_list(client_socket)  # Send user list on request
                 elif message.startswith("/ismsg"):
-                    # Send message to admin if it's a private message
                     if admin_socket:
                         admin_socket.send(message[6:].encode('utf-8'))  # Send message content without the command
                 else:
@@ -43,7 +40,6 @@ def handle_client(client_socket):
             print(f"Error: {e}")
             break
 
-    # Remove the client and notify others
     remove(client_socket)
 
 def broadcast(message, client_socket):
@@ -68,17 +64,15 @@ def send_user_list(client_socket):
     client_socket.send(("/users " + user_list_message).encode('utf-8'))
 
 def remove(client_socket):
+    global admin_socket  # Declare it as global here
     if client_socket in clients:
         username, addr = clients.pop(client_socket)  # Get username and address
-        # Notify other clients of the disconnection
         disconnection_message = f"{username} has left the chat"
         broadcast(disconnection_message, client_socket)
         print(f"{username} from {addr} has disconnected.")  # Log disconnection on the server
-        # If the admin disconnects, clear the admin socket
         if client_socket == admin_socket:
             print("Admin has disconnected.")
-            global admin_socket
-            admin_socket = None
+            admin_socket = None  # Clear the admin socket
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
