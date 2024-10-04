@@ -39,7 +39,7 @@ def broadcast(message, client_socket):
 
 def add_timestamp(message):
     """Add a timestamp to the message."""
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    current_time = datetime.now().strftime("%H:%M:%S")
     return f"{current_time} - {message}"
 
 def send_user_list(client_socket):
