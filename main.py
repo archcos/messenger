@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import scrolledtext, simpledialog
 import socket
 import threading
+from datetime import datetime
 
 class MainApplication:
     def __init__(self, master, username):
@@ -38,7 +39,8 @@ class MainApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('192.168.51.75', 53214)  # Change to your server's IP
+        # self.server_address = ('192.168.51.75', 53214)  # Change to your server's IP
+        self.server_address = ('172.16.10.155', 53214)  # Change to your server's IP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         threading.Thread(target=self.connect_to_server, daemon=True).start()
@@ -58,10 +60,16 @@ class MainApplication:
         self.chat_history.config(state='disabled')
         self.chat_history.see(tk.END)
 
+
+    def get_timestamp(self):
+        """Get the current timestamp formatted as a string."""
+        return datetime.now().strftime("%H:%M:%S")
+
     def send_message(self):
         message = self.message_entry.get()
+        timestamp = self.get_timestamp()
         if message:
-            full_message = f"{self.username}: {message}"
+            full_message =  f"{timestamp} [{self.username}]: {message}"
             self.update_chat_history(full_message + "\n")
             self.message_entry.delete(0, tk.END)
             threading.Thread(target=self.send_to_server, args=(full_message,), daemon=True).start()
@@ -110,7 +118,7 @@ class MainApplication:
         chat_display = scrolledtext.ScrolledText(is_chat_window, state='normal')
         chat_display.pack(fill='both', expand=True)
         chat_display.insert(tk.END, message + "\n")
-        chat_display.config(state='enable')
+        chat_display.config(state='disabled')
 
         close_button = tk.Button(is_chat_window, text="Close", command=is_chat_window.destroy)
         close_button.pack(pady=5)

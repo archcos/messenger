@@ -1,5 +1,6 @@
 import socket
 import threading
+from datetime import datetime
 
 clients = {}  # Store client sockets with their usernames and addresses
 
@@ -27,17 +28,23 @@ def handle_client(client_socket):
     remove(client_socket)
 
 def broadcast(message, client_socket):
+    timestamped_message = add_timestamp(message)
     for client in clients.keys():
         if client != client_socket:
             try:
-                client.send(message.encode('utf-8'))
+                client.send(timestamped_message.encode('utf-8'))
             except Exception as e:
                 print(f"Error sending message: {e}")
                 remove(client)
 
+def add_timestamp(message):
+    """Add a timestamp to the message."""
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return f"{current_time} - {message}"
+
 def send_user_list(client_socket):
     """Send the list of online users to the requesting client."""
-    online_users = [username for username, _ in clients.values()]
+    online_users = [f"{username} ({add_timestamp('')})" for username, _ in clients.values()]
     user_list_message = "Online Users:\n" + "\n".join(online_users)
     client_socket.send(("/users " + user_list_message).encode('utf-8'))
 
