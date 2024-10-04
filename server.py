@@ -40,11 +40,11 @@ def broadcast(message, client_socket):
 def add_timestamp(message):
     """Add a timestamp to the message."""
     current_time = datetime.now().strftime("%H:%M:%S")
-    return f"{current_time} - {message}"
+    return f"{current_time} {message}"
 
 def send_user_list(client_socket):
     """Send the list of online users to the requesting client."""
-    online_users = [f"{username} ({add_timestamp('')})" for username, _ in clients.values()]
+    online_users = [f"{username}" for username, _ in clients.values()]
     user_list_message = "Online Users:\n" + "\n".join(online_users)
     client_socket.send(("/users " + user_list_message).encode('utf-8'))
 

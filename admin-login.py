@@ -47,8 +47,9 @@ logo = ImageTk.PhotoImage(resized_logo)
 logo_label = tk.Label(login_window, image=logo)
 logo_label.pack()
 
-name_label = tk.Label(login_window, text="LocalLinks", font=("Arial", 12,"bold", "italic"), fg="#C70000")
+name_label = tk.Label(login_window, text="LocalLinks", font=("Arial", 12, "bold", "italic"), fg="#C70000")
 name_label.pack()
+
 # Username and Password Entry
 username_label = tk.Label(login_window, text="Username", font=("Arial", 10))
 username_label.pack(pady=5)
@@ -59,6 +60,9 @@ password_label = tk.Label(login_window, text="Password", font=("Arial", 10))
 password_label.pack(pady=(10, 5))
 password_entry = tk.Entry(login_window, show='*', font=("Arial", 10))
 password_entry.pack(pady=5)
+
+# Bind the Enter key to trigger the login function
+login_window.bind('<Return>', lambda event: login())
 
 # Login Button
 login_button = tk.Button(login_window, text="Login", command=login, bg="#FF6666", fg="white", font=("Arial", 12, "bold"), relief="raised")

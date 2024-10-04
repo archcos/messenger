@@ -39,8 +39,8 @@ class MainApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('192.168.51.75', 53214)  # Change to your server's IP
-        #self.server_address = ('172.16.10.155', 53214)  # Change to your server's IP
+        self.server_address = ('172.16.10.155', 53214) 
+        #self.server_address = ('192.168.51.75', 53214)  # Change to your server's IP
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         threading.Thread(target=self.connect_to_server, daemon=True).start()
@@ -60,7 +60,6 @@ class MainApplication:
         self.chat_history.config(state='disabled')
         self.chat_history.see(tk.END)
 
-
     def get_timestamp(self):
         """Get the current timestamp formatted as a string."""
         return datetime.now().strftime("%H:%M:%S")
@@ -69,10 +68,11 @@ class MainApplication:
         message = self.message_entry.get()
         timestamp = self.get_timestamp()
         if message:
-            full_message =  f"{timestamp} [{self.username}]: {message}"
+            my_message = f"[{self.username}]: {message}"
+            full_message = f"{timestamp} [{self.username}]: {message}"
             self.update_chat_history(full_message + "\n")
             self.message_entry.delete(0, tk.END)
-            threading.Thread(target=self.send_to_server, args=(full_message,), daemon=True).start()
+            threading.Thread(target=self.send_to_server, args=(my_message,), daemon=True).start()
 
     def send_to_server(self, message):
         try:
@@ -108,20 +108,42 @@ class MainApplication:
         close_button.pack(pady=5)
 
     def open_is_chat(self):
+        # Create a new pop-up window for IS Admin chat
+        self.is_chat_window = tk.Toplevel(self.master)
+        self.is_chat_window.title("Chat with IS Admin")
+        
+        self.is_chat_history = scrolledtext.ScrolledText(self.is_chat_window, state='disabled')
+        self.is_chat_history.pack(fill='both', expand=True)
+
+        self.is_message_entry = tk.Entry(self.is_chat_window)
+        self.is_message_entry.pack(fill='x', padx=5, pady=5)
+
+        send_button = tk.Button(self.is_chat_window, text="Send", command=self.send_is_message)
+        send_button.pack(pady=5)
+
+        self.is_message_entry.bind("<Return>", lambda event: self.send_is_message())
+
+        # Notify IS Admin about the chat request
         message = f"/ismsg {self.username} wants to chat"
         self.send_to_server(message)
 
+    def send_is_message(self):
+        message = self.is_message_entry.get()
+        timestamp = self.get_timestamp()
+        if message:
+            full_message = f"{timestamp} [{self.username}]: {message}"
+            self.update_is_chat_history(full_message + "\n")
+            self.is_message_entry.delete(0, tk.END)
+            threading.Thread(target=self.send_to_server, args=(full_message,), daemon=True).start()
+
+    def update_is_chat_history(self, message):
+        self.is_chat_history.config(state='normal')
+        self.is_chat_history.insert(tk.END, message)
+        self.is_chat_history.config(state='disabled')
+        self.is_chat_history.see(tk.END)
+
     def show_is_chat(self, message):
-        is_chat_window = tk.Toplevel(self.master)
-        is_chat_window.title("Chat with IS Admin")
-
-        chat_display = scrolledtext.ScrolledText(is_chat_window, state='normal')
-        chat_display.pack(fill='both', expand=True)
-        chat_display.insert(tk.END, message + "\n")
-        chat_display.config(state='disabled')
-
-        close_button = tk.Button(is_chat_window, text="Close", command=is_chat_window.destroy)
-        close_button.pack(pady=5)
+        self.update_is_chat_history(message + "\n")
 
 if __name__ == "__main__":
     root = tk.Tk()

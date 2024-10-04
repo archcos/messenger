@@ -38,14 +38,17 @@ logo_label = tk.Label(guest_login_window, image=logo)
 logo_label.pack()
 
 # Username Entry
-name_label = tk.Label(guest_login_window, text="LocalLinks", font=("Arial", 12,"bold", "italic"), fg="#C70000")
+name_label = tk.Label(guest_login_window, text="LocalLinks", font=("Arial", 12, "bold", "italic"), fg="#C70000")
 name_label.pack()
 
 username_label = tk.Label(guest_login_window, text="Enter your username:", font=("Arial", 10))
 username_label.pack(pady=10)
 
-username_entry = tk.Entry(guest_login_window, font=("Arial", 12), bg="#FFE6E6", fg="#C70000", borderwidth=2, relief="groove")
+username_entry = tk.Entry(guest_login_window, font=("Arial", 10), bg="#FFE6E6", borderwidth=2, relief="groove")
 username_entry.pack(pady=5)
+
+# Bind the Enter key to trigger the login function
+guest_login_window.bind('<Return>', lambda event: login())
 
 # Guest Login Button
 guest_button = tk.Button(guest_login_window, text="Login as Guest", command=login, bg="#FF4D4D", fg="white", font=("Arial", 12, "bold"), relief="raised")
