@@ -1,8 +1,7 @@
 import tkinter as tk
-from tkinter import scrolledtext, simpledialog
+from tkinter import scrolledtext
 import socket
 import threading
-from datetime import datetime
 
 class AdminApplication:
     def __init__(self, master):
@@ -23,7 +22,7 @@ class AdminApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('192.168.51.75', 53214) 
+        self.server_address = ('192.168.51.75', 53214)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         threading.Thread(target=self.connect_to_server, daemon=True).start()
@@ -31,9 +30,9 @@ class AdminApplication:
     def connect_to_server(self):
         try:
             self.socket.connect(self.server_address)
-            self.update_chat_history(f"Connected to server!\nWelcome {self.username}!\n")
-            self.socket.sendall(self.username.encode('utf-8'))  # Send username
+            self.socket.send("IS Admin".encode('utf-8'))  # Send username
             threading.Thread(target=self.receive_messages, daemon=True).start()
+            self.update_chat_history("Connected to server!\nWelcome IS Admin!\n")
         except ConnectionRefusedError:
             self.update_chat_history("Connection refused. Please ensure the server is running.\n")
         except TimeoutError:
@@ -46,9 +45,7 @@ class AdminApplication:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
                 if message:
-                    if message.startswith("Private message from"):
-                        self.show_private_chat(message)  # Display the private chat message
-                    elif message.startswith("Message from"):
+                    if message.startswith("Private message from") or message.startswith("Message from"):
                         self.show_private_chat(message)  # Display the private chat message
                     else:
                         self.update_chat_history(message + "\n")
@@ -58,9 +55,10 @@ class AdminApplication:
 
     def send_message(self):
         message = self.message_entry.get()
-        self.socket.send(message.encode('utf-8'))
-        self.update_chat_history("IS Admin: " + message + "\n")
-        self.message_entry.delete(0, 'end ')
+        if message:  # Ensure the message is not empty
+            self.socket.send(message.encode('utf-8'))
+            self.update_chat_history("IS Admin: " + message + "\n")
+            self.message_entry.delete(0, tk.END)  # Correctly delete from entry
 
     def show_private_chat(self, message):
         # Create a new window for the private chat
@@ -88,23 +86,18 @@ class AdminApplication:
 
     def send_private_message(self, private_chat_window, message_entry, chat_history):
         message = message_entry.get()
-        self.socket.send(f"/private:{message_entry.get()}".encode('utf-8'))  # Send the private message
-        chat_history.config(state='normal')
-        chat_history.insert('end', "IS Admin: " + message + "\n")
-        chat_history.config(state='disabled')
-        message_entry.delete(0, 'end')
+        if message:  # Ensure the message is not empty
+            self.socket.send(f"/private:{message}".encode('utf-8'))  # Send the private message
+            chat_history.config(state='normal')
+            chat_history.insert('end', "IS Admin: " + message + "\n")
+            chat_history.config(state='disabled')
+            message_entry.delete(0, 'end')
 
     def update_chat_history(self, message):
         self.chat_history.config(state='normal')
         self.chat_history.insert(tk.END, message)
         self.chat_history.config(state='disabled')
         self.chat_history.see(tk.END)
-
-    def send_message(self):
-        message = self.message_entry.get()
-        if message:
-            self.message_entry.delete(0, tk.END)
-            self.socket.send(message.encode('utf-8'))
 
 if __name__ == "__main__":
     root = tk.Tk()
