@@ -28,17 +28,19 @@ class AdminApplication:
         threading.Thread(target=self.connect_to_server, daemon=True).start()
 
     def connect_to_server(self):
-        try:
-            self.socket.connect(self.server_address)
-            self.socket.send("IS Admin".encode('utf-8'))  # Send username
-            threading.Thread(target=self.receive_messages, daemon=True).start()
-            self.update_chat_history("Connected to server!\nWelcome IS Admin!\n")
-        except ConnectionRefusedError:
-            self.update_chat_history("Connection refused. Please ensure the server is running.\n")
-        except TimeoutError:
-            self.update_chat_history("Connection timed out. Please check your network connection.\n")
-        except Exception as e:
-            self.update_chat_history(f"Failed to connect to server: {e}\n")
+        while True:
+            try:
+                self.socket.connect(self.server_address)
+                self.socket.send("IS Admin".encode('utf-8'))  # Send username
+                threading.Thread(target=self.receive_messages, daemon=True).start()
+                self.update_chat_history("Connected to server!\nWelcome IS Admin!\n")
+                break  # Exit the loop if connection is successful
+            except (ConnectionRefusedError, TimeoutError):
+                self.update_chat_history("Failed to connect to server. Retrying...\n")
+                time.sleep(5)  # Wait before retrying
+            except Exception as e:
+                self.update_chat_history(f"Failed to connect to server: {e}\n")
+            break
 
     def receive_messages(self):
         while True:
@@ -49,10 +51,24 @@ class AdminApplication:
                         self.show_private_chat(message)  # Display the private chat message
                     else:
                         self.update_chat_history(message + "\n")
+    def receive_messages(self):
+        while True:
+            try:
+                message = self.socket.recv(1024).decode('utf-8')
+                if message.startswith("/users"):
+                    self.receive_user_list(message[6:])
+                elif message.startswith("/ismsg"):
+                    self.show_is_chat(message[6:])  # Strip command and show message
+                else:
+                    self.update_chat_history(message + "\n")
+            except ConnectionResetError:
+                print("Connection reset by the server.")
+                self.update_chat_history("Disconnected from server.\n")
+                break
             except Exception as e:
                 print(f"Error receiving message: {e}")
                 break
-
+                
     def send_message(self):
         message = self.message_entry.get()
         if message:  # Ensure the message is not empty

@@ -45,13 +45,18 @@ class MainApplication:
         threading.Thread(target=self.connect_to_server, daemon=True).start()
 
     def connect_to_server(self):
-        try:
-            self.socket.connect(self.server_address)
-            self.update_chat_history(f"Connected to server!\nWelcome {self.username}!\n")
-            self.socket.sendall(self.username.encode('utf-8'))
-            threading.Thread(target=self.receive_messages, daemon=True).start()
-        except Exception as e:
-            self.update_chat_history(f"Failed to connect to server: {e}\n")
+        while True:
+            try:
+                self.socket.connect(self.server_address)
+                self.update_chat_history(f"Connected to server!\nWelcome {self.username}!\n")
+                self.socket.sendall(self.username.encode('utf-8'))
+                threading.Thread(target=self.receive_messages, daemon=True).start()
+            except (ConnectionRefusedError, TimeoutError):
+                self.update_chat_history("Failed to connect to server. Retrying...\n")
+                time.sleep(5)  # Wait before retrying
+            except Exception as e:
+                self.update_chat_history(f"Failed to connect to server: {e}\n")
+                break
 
     def update_chat_history(self, message):
         self.chat_history.config(state='normal')
@@ -87,10 +92,24 @@ class MainApplication:
                     self.show_is_chat(message)  # Display the IS message
                 else:
                     self.update_chat_history(message + "\n")
+               def receive_messages(self):
+        while True:
+            try:
+                message = self.socket.recv(1024).decode('utf-8')
+                if message.startswith("/users"):
+                    self.receive_user_list(message[6:])
+                elif message.startswith("/ismsg"):
+                    self.show_is_chat(message[6:])  # Strip command and show message
+                else:
+                    self.update_chat_history(message + "\n")
+            except ConnectionResetError:
+                print("Connection reset by the server.")
+                self.update_chat_history("Disconnected from server.\n")
+                break
             except Exception as e:
                 print(f"Error receiving message: {e}")
                 break
-
+                
     def show_user_list(self):
         self.send_to_server("/users")
 
