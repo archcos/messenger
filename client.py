@@ -94,8 +94,8 @@ class MainApplication:
                     self.receive_user_list(message[6:])
                 elif message.startswith("/ismsg"):
                     self.show_is_chat(message[6:])
-                elif message.startswith("/private"):
-                    self.handle_private_message(message[8:])
+                elif message.startswith("IS"):
+                    self.update_is_chat_history(message + "\n")
                 else:
                     self.update_chat_history(message + "\n")
             except ConnectionResetError:

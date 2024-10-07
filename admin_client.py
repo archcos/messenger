@@ -45,6 +45,14 @@ class AdminApplication:
                 self.update_chat_history(f"Failed to connect to server: {e}\n")
                 break
 
+    def send_message(self):
+        message = self.message_entry.get()
+        full_message = f"IS Admin:{message}"
+        if full_message:
+            self.socket.send(full_message.encode('utf-8'))
+            self.update_chat_history("IS Admin: " + message + "\n")
+            self.message_entry.delete(0, tk.END)
+
     def receive_messages(self):
         while True:
             try:
@@ -63,12 +71,7 @@ class AdminApplication:
                 print(f"Error receiving message: {e}")
                 break
 
-    def send_message(self):
-        message = self.message_entry.get()
-        if message:  # Ensure the message is not empty
-            self.socket.send(message.encode('utf-8'))
-            self.update_chat_history("IS Admin: " + message + "\n")
-            self.message_entry.delete(0, tk.END)
+
 
     def show_private_chat(self, message):
         parts = message.split(": ", 1)

@@ -42,7 +42,7 @@ def handle_client(client_socket):
                     recipient = message.split(":")[1]
                     for client in clients.keys():
                         if clients[client][0] == recipient:
-                            client.send(f"Private message from {username}: {message.split(':')[2]}".encode('utf-8'))
+                            client.send(f"{username}: {message.split(':')[2]}".encode('utf-8'))
                 else:
                     broadcast(message, client_socket)
             else:
