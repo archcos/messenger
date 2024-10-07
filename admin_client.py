@@ -31,10 +31,15 @@ class AdminApplication:
     def connect_to_server(self):
         try:
             self.socket.connect(self.server_address)
-            self.socket.send("IS Admin".encode('utf-8'))
+            self.update_chat_history(f"Connected to server!\nWelcome {self.username}!\n")
+            self.socket.sendall(self.username.encode('utf-8'))  # Send username
             threading.Thread(target=self.receive_messages, daemon=True).start()
+        except ConnectionRefusedError:
+            self.update_chat_history("Connection refused. Please ensure the server is running.\n")
+        except TimeoutError:
+            self.update_chat_history("Connection timed out. Please check your network connection.\n")
         except Exception as e:
-            print(f "Error connecting to server: {e}")
+            self.update_chat_history(f"Failed to connect to server: {e}\n")
 
     def receive_messages(self):
         while True:
@@ -42,6 +47,8 @@ class AdminApplication:
                 message = self.socket.recv(1024).decode('utf-8')
                 if message:
                     if message.startswith("Private message from"):
+                        self.show_private_chat(message)  # Display the private chat message
+                    elif message.startswith("Message from"):
                         self.show_private_chat(message)  # Display the private chat message
                     else:
                         self.update_chat_history(message + "\n")
@@ -75,6 +82,9 @@ class AdminApplication:
         chat_history.config(state='normal')
         chat_history.insert('end', message + "\n")
         chat_history.config(state='disabled')
+
+        # Keep the pop-up window open
+        private_chat_window.protocol("WM_DELETE_WINDOW", lambda: None)
 
     def send_private_message(self, private_chat_window, message_entry, chat_history):
         message = message_entry.get()
