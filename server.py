@@ -102,6 +102,10 @@ def signal_handler(sig, frame):
 def start_server():
     global server_socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    # Set the SO_REUSEADDR socket option
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    
     server_socket.bind(('0.0.0.0', 53214))
     server_socket.listen(5)
     print("Server started, waiting for connections...")
