@@ -43,9 +43,6 @@ def handle_client(client_socket):
                     for client in clients.keys():
                         if clients[client][0] == recipient:
                             client.send(f"Private message from {username}: {message.split(':')[2]}".encode('utf-8'))
-                elif message.startswith("/subchat"):
-                    participant_username = message.split(":")[1]
-                    create_subserver(client_socket, username, participant_username)
                 else:
                     broadcast(message, client_socket)
             else:
@@ -55,46 +52,6 @@ def handle_client(client_socket):
             break
 
     remove(client_socket)
-
-def create_subserver(client_socket, username, participant_username):
-    participant_socket = None
-    for client in clients.keys():
-        if clients[client][0] == participant_username:
-            participant_socket = client
-            break
-            
-    if participant_socket:
-        subserver = SubServer(client_socket, participant_socket)
-        subservers[(client_socket, participant_socket)] = subserver
-    else:
-        client_socket.send(f"User {participant_username} not found.".encode('utf-8'))
-
-class SubServer:
-    def __init__(self, client1, client2):
-        self.clients = [client1, client2]
-        self.start()
-
-    def start(self):
-        threading.Thread(target=self.handle_clients, daemon=True).start()
-
-    def handle_clients(self):
-        while True:
-            try:
-                message = self.clients[0].recv(1024).decode('utf-8')
-                if message:
-                    self.clients[1].send(f"Private message from {clients[self.clients[0]][0]}: {message}".encode('utf-8'))
-                else:
-                    break
-            except Exception as e:
-                print(f"Error in subserver: {e}")
-                break
-        
-        self.cleanup()
-
-    def cleanup(self):
-        for client in self.clients:
-            client.close()
-        del subservers[(self.clients[0], self.clients[1])]
 
 def broadcast(message, client_socket):
     timestamped_message = add_timestamp(message)
