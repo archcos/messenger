@@ -4,9 +4,12 @@ import signal
 import sys
 from datetime import datetime
 
-clients = {}  # Store client sockets with their usernames and addresses
-admin_socket = None  # To hold the admin socket
-server_socket = None  # To hold the server socket
+clients = {}
+admin_socket = None
+server_socket = None
+
+# Subserver management
+subservers = {}  # To keep track of active subservers
 
 def handle_client(client_socket):
     global admin_socket
@@ -35,14 +38,14 @@ def handle_client(client_socket):
                 elif message.startswith("/ismsg"):
                     if admin_socket:
                         admin_socket.send(f"Message from {username}: {message[6:]}".encode('utf-8'))
-                        for client in clients.keys():
-                            if clients[client][0] == message[6:].split(":")[0]:
-                                client.send(f"Private message from IS Admin: {message[6:]}".encode('utf-8'))
                 elif message.startswith("/private"):
                     recipient = message.split(":")[1]
                     for client in clients.keys():
                         if clients[client][0] == recipient:
                             client.send(f"Private message from {username}: {message.split(':')[2]}".encode('utf-8'))
+                elif message.startswith("/subchat"):
+                    participant_username = message.split(":")[1]
+                    create_subserver(client_socket, username, participant_username)
                 else:
                     broadcast(message, client_socket)
             else:
@@ -52,6 +55,46 @@ def handle_client(client_socket):
             break
 
     remove(client_socket)
+
+def create_subserver(client_socket, username, participant_username):
+    participant_socket = None
+    for client in clients.keys():
+        if clients[client][0] == participant_username:
+            participant_socket = client
+            break
+            
+    if participant_socket:
+        subserver = SubServer(client_socket, participant_socket)
+        subservers[(client_socket, participant_socket)] = subserver
+    else:
+        client_socket.send(f"User {participant_username} not found.".encode('utf-8'))
+
+class SubServer:
+    def __init__(self, client1, client2):
+        self.clients = [client1, client2]
+        self.start()
+
+    def start(self):
+        threading.Thread(target=self.handle_clients, daemon=True).start()
+
+    def handle_clients(self):
+        while True:
+            try:
+                message = self.clients[0].recv(1024).decode('utf-8')
+                if message:
+                    self.clients[1].send(f"Private message from {clients[self.clients[0]][0]}: {message}".encode('utf-8'))
+                else:
+                    break
+            except Exception as e:
+                print(f"Error in subserver: {e}")
+                break
+        
+        self.cleanup()
+
+    def cleanup(self):
+        for client in self.clients:
+            client.close()
+        del subservers[(self.clients[0], self.clients[1])]
 
 def broadcast(message, client_socket):
     timestamped_message = add_timestamp(message)
@@ -82,10 +125,9 @@ def remove(client_socket):
         
         if client_socket == admin_socket:
             print("Admin has disconnected.")
-            admin_socket = None  # Clear the admin socket
+            admin_socket = None
 
 def cleanup():
-    """Cleanup function to close all sockets and shutdown the server."""
     global server_socket
     if admin_socket:
         admin_socket.close()
@@ -102,10 +144,7 @@ def signal_handler(sig, frame):
 def start_server():
     global server_socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
-    # Set the SO_REUSEADDR socket option
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    
     server_socket.bind(('0.0.0.0', 53214))
     server_socket.listen(5)
     print("Server started, waiting for connections...")
@@ -120,7 +159,6 @@ def start_server():
             break
 
 if __name__ == "__main__":
-    # Setup signal handling for graceful shutdown
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     

@@ -20,7 +20,7 @@ class MainApplication:
         btn1 = tk.Button(self.side_panel, text="Show Online Users", command=self.show_user_list)
         btn1.pack(pady=10)
 
-        btn2 = tk.Button(self.side_panel, text="Contact IS", command=self.open_is_chat)
+        btn2 = tk.Button(self.side_panel, text="Contact IS Admin", command=self.open_is_chat)
         btn2.pack(pady=10)
 
         btn3 = tk.Button(self.side_panel, text="Exit", command=master.quit)
@@ -43,6 +43,9 @@ class MainApplication:
         self.server_address = ('192.168.50.130', 53214) 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
+        # Store references to private chat windows
+        self.private_chat_windows = {}
+
         threading.Thread(target=self.connect_to_server, daemon=True).start()
 
     def connect_to_server(self):
@@ -52,6 +55,7 @@ class MainApplication:
                 self.update_chat_history(f"Connected to server!\nWelcome {self.username}!\n")
                 self.socket.sendall(self.username.encode('utf-8'))
                 threading.Thread(target=self.receive_messages, daemon=True).start()
+                break  # Exit loop after successful connection
             except (ConnectionRefusedError, TimeoutError):
                 self.update_chat_history("Failed to connect to server. Retrying...\n")
                 time.sleep(5)  # Wait before retrying
@@ -88,9 +92,11 @@ class MainApplication:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
                 if message.startswith("/users"):
-                    self.receive_user_list(message[6:])
+                    self.receive_user_list(message[6:])  # Strip command and show user list
                 elif message.startswith("/ismsg"):
                     self.show_is_chat(message[6:])  # Strip command and show message
+                elif message.startswith("/private"):
+                    self.handle_private_message(message[8:])  # Handle private message
                 else:
                     self.update_chat_history(message + "\n")
             except ConnectionResetError:
@@ -100,7 +106,7 @@ class MainApplication:
             except Exception as e:
                 print(f"Error receiving message: {e}")
                 break
-                
+
     def show_user_list(self):
         self.send_to_server("/users")
 
@@ -115,6 +121,7 @@ class MainApplication:
         close_button.pack(pady=5)
 
     def open_is_chat(self):
+        # Create a new window for chatting with the IS Admin
         self.is_chat_window = tk.Toplevel(self.master)
         self.is_chat_window.title("Chat with IS Admin")
 
@@ -129,6 +136,7 @@ class MainApplication:
 
         self.is_message_entry.bind("<Return>", lambda event: self.send_is_message())
 
+        # Inform the server that the user wants to start a chat with the IS Admin
         message = f"/ismsg {self.username} wants to chat"
         self.send_to_server(message)
 
@@ -136,7 +144,7 @@ class MainApplication:
         message = self.is_message_entry.get()
         timestamp = self.get_timestamp()
         if message:
-            full_message = f"{timestamp} [{self.username}]: {message}"
+            full_message = f"{timestamp} [You]: {message}"
             self.update_is_chat_history(full_message + "\n")
             self.is_message_entry.delete(0, tk.END)
             threading.Thread(target=self.send_to_server, args=(f"/ismsg {full_message}"), daemon=True).start()
@@ -149,6 +157,55 @@ class MainApplication:
 
     def show_is_chat(self, message):
         self.update_is_chat_history(message + "\n")
+
+    def handle_private_message(self, message):
+        sender, chat_message = message.split(": ", 1)
+        sender = sender.strip()
+
+        # Create a new private chat window if it doesn't exist
+        if sender not in self.private_chat_windows:
+            private_chat_window = tk.Toplevel(self.master)
+            private_chat_window.title(f"Private Chat with {sender}")
+
+            chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled')
+            chat_history.pack(fill='both', expand=True)
+
+            message_entry = tk.Entry(private_chat_window)
+            message_entry.pack(fill='x', padx=5, pady=5)
+
+            send_button = tk.Button(private_chat_window, text="Send", command=lambda: self.send_private_message(chat_history, message_entry, sender))
+            send_button.pack(pady=5)
+
+            message_entry.bind("<Return>", lambda event: self.send_private_message(chat_history, message_entry, sender))
+
+            # Store the chat window reference
+            self.private_chat_windows[sender] = (chat_history, message_entry)
+
+            # Keep the pop-up window open
+            private_chat_window.protocol("WM_DELETE_WINDOW", lambda: self.close_private_chat(sender))
+        else:
+            chat_history, _ = self.private_chat_windows[sender]
+
+        # Update the chat history in the private chat window
+        chat_history.config(state='normal')
+        chat_history.insert('end', f"{sender}: {chat_message}\n")
+        chat_history.config(state='disabled')
+
+    def send_private_message(self, chat_history, message_entry, recipient):
+        message = message_entry.get()
+        if message:  # Ensure the message is not empty
+            full_message = f"/private {self.username}: {message}"  # Format for sending private messages
+            # Use the IS Admin's socket for sending private messages
+            self.socket.sendall(full_message.encode('utf-8'))  # Send the private message
+            chat_history.config(state='normal')
+            chat_history.insert('end', f"Me: {message}\n")
+            chat_history.config(state='disabled')
+            message_entry.delete(0, 'end')
+
+    def close_private_chat(self, recipient):
+        """Close the private chat window."""
+        if recipient in self.private_chat_windows:
+            del self.private_chat_windows[recipient]
 
 if __name__ == "__main__":
     root = tk.Tk()
