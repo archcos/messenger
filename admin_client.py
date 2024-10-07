@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import scrolledtext
 import socket
 import threading
+import time
 
 class AdminApplication:
     def __init__(self, master):
@@ -22,8 +23,10 @@ class AdminApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('192.168.51.75', 53214)
+        self.server_address = ('192.168.50.130', 53214)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.private_chat_windows = {}  # Store references to private chat windows
 
         threading.Thread(target=self.connect_to_server, daemon=True).start()
 
@@ -47,20 +50,12 @@ class AdminApplication:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
                 if message:
-                    if message.startswith("Private message from") or message.startswith("Message from"):
-                        self.show_private_chat(message)  # Display the private chat message
+                    if message.startswith("Private message from"):
+                        self.show_private_chat(message)  # Handle private message
+                    elif message.startswith("Message from"):
+                        self.show_private_chat(message)  # Handle admin messages
                     else:
                         self.update_chat_history(message + "\n")
-    def receive_messages(self):
-        while True:
-            try:
-                message = self.socket.recv(1024).decode('utf-8')
-                if message.startswith("/users"):
-                    self.receive_user_list(message[6:])
-                elif message.startswith("/ismsg"):
-                    self.show_is_chat(message[6:])  # Strip command and show message
-                else:
-                    self.update_chat_history(message + "\n")
             except ConnectionResetError:
                 print("Connection reset by the server.")
                 self.update_chat_history("Disconnected from server.\n")
@@ -68,7 +63,7 @@ class AdminApplication:
             except Exception as e:
                 print(f"Error receiving message: {e}")
                 break
-                
+
     def send_message(self):
         message = self.message_entry.get()
         if message:  # Ensure the message is not empty
@@ -77,37 +72,56 @@ class AdminApplication:
             self.message_entry.delete(0, tk.END)  # Correctly delete from entry
 
     def show_private_chat(self, message):
-        # Create a new window for the private chat
-        private_chat_window = tk.Toplevel(self.master)
-        private_chat_window.title("Private Chat")
+        # Extract the sender's username and the actual message
+        parts = message.split(": ", 1)
+        if len(parts) < 2:
+            return  # Unexpected message format
 
-        chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled')
-        chat_history.pack(fill='both', expand=True)
+        sender = parts[0].replace("Private message from ", "").strip()
+        chat_message = parts[1]
 
-        message_entry = tk.Entry(private_chat_window)
-        message_entry.pack(fill='x', padx=5, pady=5)
+        # Create a new window for the private chat if it doesn't exist
+        if sender not in self.private_chat_windows:
+            private_chat_window = tk.Toplevel(self.master)
+            private_chat_window.title(f"Private Chat with {sender}")
 
-        send_button = tk.Button(private_chat_window, text="Send", command=lambda: self.send_private_message(private_chat_window, message_entry, chat_history))
-        send_button.pack(pady=5)
+            chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled')
+            chat_history.pack(fill='both', expand=True)
 
-        message_entry.bind("<Return>", lambda event: self.send_private_message(private_chat_window, message_entry, chat_history))
+            message_entry = tk.Entry(private_chat_window)
+            message_entry.pack(fill='x', padx=5, pady=5)
 
-        # Display the private chat message
+            send_button = tk.Button(private_chat_window, text="Send", command=lambda: self.send_private_message(chat_history, message_entry, sender))
+            send_button.pack(pady=5)
+
+            message_entry.bind("<Return>", lambda event: self.send_private_message(chat_history, message_entry, sender))
+
+            # Store the chat window reference
+            self.private_chat_windows[sender] = (chat_history, message_entry)
+
+            # Keep the pop-up window open
+            private_chat_window.protocol("WM_DELETE_WINDOW", lambda: self.close_private_chat(sender))
+        else:
+            chat_history, _ = self.private_chat_windows[sender]
+
+        # Update the chat history in the private chat window
         chat_history.config(state='normal')
-        chat_history.insert('end', message + "\n")
+        chat_history.insert('end', f"{sender}: {chat_message}\n")
         chat_history.config(state='disabled')
 
-        # Keep the pop-up window open
-        private_chat_window.protocol("WM_DELETE_WINDOW", lambda: None)
-
-    def send_private_message(self, private_chat_window, message_entry, chat_history):
+    def send_private_message(self, chat_history, message_entry, recipient):
         message = message_entry.get()
         if message:  # Ensure the message is not empty
-            self.socket.send(f"/private:{message}".encode('utf-8'))  # Send the private message
+            self.socket.send(f"/private:{recipient}:{message}".encode('utf-8'))  # Send the private message
             chat_history.config(state='normal')
             chat_history.insert('end', "IS Admin: " + message + "\n")
             chat_history.config(state='disabled')
             message_entry.delete(0, 'end')
+
+    def close_private_chat(self, recipient):
+        """Close the private chat window."""
+        if recipient in self.private_chat_windows:
+            del self.private_chat_windows[recipient]
 
     def update_chat_history(self, message):
         self.chat_history.config(state='normal')

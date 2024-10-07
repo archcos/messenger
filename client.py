@@ -3,6 +3,7 @@ from tkinter import scrolledtext, simpledialog
 import socket
 import threading
 from datetime import datetime
+import time
 
 class MainApplication:
     def __init__(self, master, username):
@@ -39,7 +40,7 @@ class MainApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('192.168.51.75', 53214) 
+        self.server_address = ('192.168.50.130', 53214) 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         threading.Thread(target=self.connect_to_server, daemon=True).start()
@@ -83,16 +84,6 @@ class MainApplication:
             self.update_chat_history(f"Error sending message: {e}\n")
 
     def receive_messages(self):
-        while True:
-            try:
-                message = self.socket.recv(1024).decode('utf-8')
-                if message.startswith("/users"):
-                    self.receive_user_list(message[6:])
-                elif message.startswith("Message from"):
-                    self.show_is_chat(message)  # Display the IS message
-                else:
-                    self.update_chat_history(message + "\n")
-               def receive_messages(self):
         while True:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
