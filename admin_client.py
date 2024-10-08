@@ -3,6 +3,7 @@ from tkinter import scrolledtext
 import socket
 import threading
 import time
+from datetime import datetime
 
 class AdminApplication:
     def __init__(self, master):
@@ -23,7 +24,7 @@ class AdminApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('192.168.50.130', 53214)
+        self.server_address = ('172.16.10.155', 53214)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.private_chat_windows = {}
@@ -62,6 +63,7 @@ class AdminApplication:
                         self.show_private_chat(message)  # Handle private message
                     elif message.startswith("Message from"):
                         self.show_private_chat(message)  # Handle admin messages
+                        print(f"this is chaose {message}")
                     else:
                         self.update_chat_history(message + "\n")
             except ConnectionResetError:
@@ -71,7 +73,21 @@ class AdminApplication:
                 print(f"Error receiving message: {e}")
                 break
 
+    def get_timestamp(self):
+        return datetime.now().strftime("%H:%M:%S")
 
+    def send_private_message(self, chat_history, message_entry, recipient):
+            timestamp = self.get_timestamp()
+            message = message_entry.get()
+            sender = recipient[len("Message from "):]
+            print(message, sender)
+            if message:
+                print(recipient)  # Ensure the message is not empty
+                self.socket.send(f"/private:{sender}:{message}".encode('utf-8'))  # Send the private message
+                chat_history.config(state='normal')
+                chat_history.insert('end', f"{timestamp} [IS Admin]: " + message + "\n")
+                chat_history.config(state='disabled')
+                message_entry.delete(0, 'end')
 
     def show_private_chat(self, message):
         parts = message.split(": ", 1)
@@ -106,14 +122,7 @@ class AdminApplication:
         chat_history.insert('end', f"{sender}: {chat_message}\n")
         chat_history.config(state='disabled')
 
-    def send_private_message(self, chat_history, message_entry, recipient):
-        message = message_entry.get()
-        if message:  # Ensure the message is not empty
-            self.socket.send(f"/private:{recipient}:{message}".encode('utf-8'))  # Send the private message
-            chat_history.config(state='normal')
-            chat_history.insert('end', "IS Admin: " + message + "\n")
-            chat_history.config(state='disabled')
-            message_entry.delete(0, 'end')
+ 
 
     def close_private_chat(self, recipient):
         """Close the private chat window."""

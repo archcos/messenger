@@ -40,7 +40,7 @@ class MainApplication:
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
-        self.server_address = ('192.168.50.130', 53214)
+        self.server_address = ('172.16.10.155', 53214)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.private_chat_windows = {}
@@ -87,6 +87,7 @@ class MainApplication:
             self.update_chat_history(f"Error sending message: {e}\n")
 
     def receive_messages(self):
+        timestamp = self.get_timestamp()
         while True:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
@@ -95,7 +96,9 @@ class MainApplication:
                 elif message.startswith("/ismsg"):
                     self.show_is_chat(message[6:])
                 elif message.startswith("IS"):
-                    self.update_is_chat_history(message + "\n")
+                    full_message = f"{timestamp} {message}"
+                    print(message)
+                    self.update_is_chat_history(full_message + "\n")
                 else:
                     self.update_chat_history(message + "\n")
             except ConnectionResetError:
@@ -139,11 +142,12 @@ class MainApplication:
     def send_is_message(self):
         message = self.is_message_entry.get()
         timestamp = self.get_timestamp()
+        receiver = "IS Admin"
         if message:
             full_message = f"{timestamp} [{self.username}]: {message}"
             self.update_is_chat_history(full_message + "\n")
+            self.socket.send(f"/ismsg:{receiver}:{message}".encode('utf-8'))  # Send the private message
             self.is_message_entry.delete(0, tk.END)
-            threading.Thread(target=self.send_to_server, args=(f"/ismsg {full_message}"), daemon=True).start()
 
     def update_is_chat_history(self, message):
         self.is_chat_history.config(state='normal')

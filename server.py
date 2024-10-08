@@ -32,19 +32,24 @@ def handle_client(client_socket):
     while True:
         try:
             message = client_socket.recv(1024).decode('utf-8')
+            print(message)
             if message:
                 if message == "/users":
                     send_user_list(client_socket)
+                    print(message)
                 elif message.startswith("/ismsg"):
                     if admin_socket:
-                        admin_socket.send(f"Message from {username}: {message[6:]}".encode('utf-8'))
+                        admin_socket.send(f"Message from {username}: {message}".encode('utf-8'))
+                        print(f"ismsg {message}")
                 elif message.startswith("/private"):
-                    recipient = message.split(":")[1]
+                    sender = message.split(":")[1]
                     for client in clients.keys():
-                        if clients[client][0] == recipient:
+                        if clients[client][0] == sender:
                             client.send(f"{username}: {message.split(':')[2]}".encode('utf-8'))
+                            print(f"privates {message}")
                 else:
                     broadcast(message, client_socket)
+                    print(f"broacast {message}")
             else:
                 break
         except Exception as e:
