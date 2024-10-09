@@ -94,11 +94,11 @@ class MainApplication:
                 if message.startswith("/users"):
                     self.receive_user_list(message[6:])
                 elif message.startswith("/ismsg"):
-                    self.show_is_chat(message[6:])
+                    self.show_is_chat(message)
+                    print(f"msg {message}")
                 elif message.startswith("IS"):
-                    full_message = f"{timestamp} {message}"
-                    print(message)
-                    self.update_is_chat_history(full_message + "\n")
+                    print(f"IS {message}")
+                    self.update_is_chat_history(message + "\n")
                 else:
                     self.update_chat_history(message + "\n")
             except ConnectionResetError:
@@ -136,22 +136,23 @@ class MainApplication:
 
         self.is_message_entry.bind("<Return>", lambda event: self.send_is_message())
 
-        message = f"/ismsg {self.username} wants to chat"
+        message = f"/ismsg:{self.username}:wants to chat"
         self.send_to_server(message)
 
     def send_is_message(self):
         message = self.is_message_entry.get()
         timestamp = self.get_timestamp()
-        receiver = "IS Admin"
+        print(message)
         if message:
-            full_message = f"{timestamp} [{self.username}]: {message}"
+            full_message = f"[{self.username}]: {message}"
             self.update_is_chat_history(full_message + "\n")
-            self.socket.send(f"/ismsg:{receiver}:{message}".encode('utf-8'))  # Send the private message
+            self.socket.send(f"/ismsg:{self.username}:{message}".encode('utf-8'))  # Send the private message
             self.is_message_entry.delete(0, tk.END)
 
     def update_is_chat_history(self, message):
+        timestamp = self.get_timestamp()
         self.is_chat_history.config(state='normal')
-        self.is_chat_history.insert(tk.END, message)
+        self.is_chat_history.insert(tk.END, f"{timestamp} {message}")
         self.is_chat_history.config(state='disabled')
         self.is_chat_history.see(tk.END)
 

@@ -39,8 +39,12 @@ def handle_client(client_socket):
                     print(message)
                 elif message.startswith("/ismsg"):
                     if admin_socket:
-                        admin_socket.send(f"Message from {username}: {message}".encode('utf-8'))
+                        admin_socket.send(f"{message}".encode('utf-8'))
                         print(f"ismsg {message}")
+                # elif message.startswith("/user"):
+                #     if admin_socket:
+                #         admin_socket.send(f"/user:{username}:{message}".encode('utf-8'))
+                #         print(f"ismsg {message}")
                 elif message.startswith("/private"):
                     sender = message.split(":")[1]
                     for client in clients.keys():

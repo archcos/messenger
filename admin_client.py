@@ -47,11 +47,12 @@ class AdminApplication:
                 break
 
     def send_message(self):
+        timestamp = self.get_timestamp()
         message = self.message_entry.get()
-        full_message = f"IS Admin:{message}"
+        full_message = f"IS Admin: {message}"
         if full_message:
             self.socket.send(full_message.encode('utf-8'))
-            self.update_chat_history("IS Admin: " + message + "\n")
+            self.update_chat_history(f"{timestamp} [IS Admin]: " + message + "\n")
             self.message_entry.delete(0, tk.END)
 
     def receive_messages(self):
@@ -59,13 +60,15 @@ class AdminApplication:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
                 if message:
-                    if message.startswith("Private message from"):
+                    if message.startswith("/user"):
                         self.show_private_chat(message)  # Handle private message
-                    elif message.startswith("Message from"):
+                        print(f"user {message}")
+                    elif message.startswith("/ismsg"):
                         self.show_private_chat(message)  # Handle admin messages
-                        print(f"this is chaose {message}")
+                        print(f"ism {message}")
                     else:
-                        self.update_chat_history(message + "\n")
+                        self.update_chat_history(message[9:] + "\n")
+                        print("Chat" +message[9:])
             except ConnectionResetError:
                 self.update_chat_history("Disconnected from server.\n")
                 break
@@ -79,23 +82,25 @@ class AdminApplication:
     def send_private_message(self, chat_history, message_entry, recipient):
             timestamp = self.get_timestamp()
             message = message_entry.get()
-            sender = recipient[len("Message from "):]
-            print(message, sender)
+            print(f"ms {message}, ss {recipient}")
             if message:
                 print(recipient)  # Ensure the message is not empty
-                self.socket.send(f"/private:{sender}:{message}".encode('utf-8'))  # Send the private message
+                self.socket.send(f"/private:{recipient}:{message}".encode('utf-8'))  # Send the private message
                 chat_history.config(state='normal')
                 chat_history.insert('end', f"{timestamp} [IS Admin]: " + message + "\n")
                 chat_history.config(state='disabled')
                 message_entry.delete(0, 'end')
 
     def show_private_chat(self, message):
-        parts = message.split(": ", 1)
+        parts = message.split(":")
+        print(message)
         if len(parts) < 2:
             return  # Unexpected message format
 
-        sender = parts[0].replace("Private message from ", "").strip()
-        chat_message = parts[1]
+        sender = parts[1].replace("Private message from ", "").strip()
+        chat_message = parts[2]
+        print(f"sender {sender}")
+        print(message)
 
         if sender not in self.private_chat_windows:
             private_chat_window = tk.Toplevel(self.master)
@@ -118,8 +123,9 @@ class AdminApplication:
         else:
             chat_history, _ = self.private_chat_windows[sender]
 
+        timestamp = self.get_timestamp()
         chat_history.config(state='normal')
-        chat_history.insert('end', f"{sender}: {chat_message}\n")
+        chat_history.insert('end', f"{timestamp} [{sender}]: {chat_message}\n")
         chat_history.config(state='disabled')
 
  
