@@ -4,23 +4,38 @@ import socket
 import threading
 import time
 from datetime import datetime
+from PIL import Image, ImageTk
 
 class AdminApplication:
     def __init__(self, master):
         self.master = master
         master.title("Admin Page")
+        self.master = master
+        master.title("Admin Page")
+        master.geometry("350x500")
+        master.configure(bg="#ffcccc")  
+        master.resizable(False, False) 
 
-        self.chat_frame = tk.Frame(master)
+        self.chat_frame = tk.Frame(master, bg="#ffcccc")
         self.chat_frame.pack(side='right', fill='both', expand=True)
 
-        self.chat_history = scrolledtext.ScrolledText(self.chat_frame, state='disabled')
-        self.chat_history.pack(fill='both', expand=True)
+        self.chat_history = scrolledtext.ScrolledText(self.chat_frame, state='disabled', bg="#ffffff", fg="#333333", wrap=tk.WORD,  font=("Helvetica", 9))
+        self.chat_history.pack(fill='both', expand=True, padx=10, pady=10)
 
-        self.message_entry = tk.Entry(self.chat_frame)
-        self.message_entry.pack(fill='x', padx=5, pady=5)
+        input_frame = tk.Frame(self.chat_frame, bg="#ffcccc")
+        input_frame.pack(fill='x', padx=10, pady=5)
 
-        send_button = tk.Button(self.chat_frame, text="Send", command=self.send_message)
-        send_button.pack(pady=5)
+        self.message_entry = tk.Entry(input_frame, bg="#ffffff", fg="#333333",  font=("Helvetica", 9))
+        self.message_entry.pack(side='left', fill='x', expand=True)
+
+        send_icon = Image.open("send.png")
+        resized_image = send_icon.resize((20, 20), Image.LANCZOS) 
+        send_image = ImageTk.PhotoImage(resized_image)  
+
+        send_button = tk.Button(input_frame, image=send_image, command=self.send_message, bg="#ff9999", fg="#333333")
+        send_button.image = send_image 
+        send_button.pack(side='right')
+
 
         self.message_entry.bind("<Return>", lambda event: self.send_message())
 
@@ -30,7 +45,7 @@ class AdminApplication:
         self.private_chat_windows = {}
         self.master.protocol("WM_DELETE_WINDOW", self.confirm_exit)
         threading.Thread(target=self.connect_to_server, daemon=True).start()
-        
+
     def confirm_exit(self):
         if messagebox.askyesno("Confirm Exit", "Are you sure you want to exit?"):
             self.master.destroy()
@@ -64,10 +79,8 @@ class AdminApplication:
             try:
                 message = self.socket.recv(1024).decode('utf-8')
                 if message:
-                    if message.startswith("/user"):
-                        self.show_private_chat(message)  # Handle private message
-                    elif message.startswith("/ismsg"):
-                        self.show_private_chat(message)  # Handle admin messages
+                    if message.startswith("/ismsg"):
+                        self.show_private_chat(message) 
                     else:
                         self.update_chat_history(message[9:] + "\n")
             except ConnectionResetError:
@@ -84,7 +97,7 @@ class AdminApplication:
             timestamp = self.get_timestamp()
             message = message_entry.get()
             if message:
-                self.socket.send(f"/private:{recipient}:{message}".encode('utf-8'))  # Send the private message
+                self.socket.send(f"/private:{recipient}:{message}".encode('utf-8')) 
                 chat_history.config(state='normal')
                 chat_history.insert('end', f"{timestamp} [IS Admin]: " + message + "\n")
                 chat_history.config(state='disabled')
@@ -93,7 +106,7 @@ class AdminApplication:
     def show_private_chat(self, message):
         parts = message.split(":")
         if len(parts) < 2:
-            return  # Unexpected message format
+            return
 
         sender = parts[1].replace("Private message from ", "").strip()
         chat_message = parts[2]
@@ -101,44 +114,53 @@ class AdminApplication:
         if sender not in self.private_chat_windows:
             private_chat_window = tk.Toplevel(self.master)
             private_chat_window.title(f"Private Chat with {sender}")
+            private_chat_window.configure(bg="#ffcccc") 
+            private_chat_window.geometry("350x500") 
 
-            chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled')
-            chat_history.pack(fill='both', expand=True)
+            chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled', bg="#ffffff", fg="#333333",  font=("Helvetica", 9))
+            chat_history.pack(fill='both', expand=True, padx=10, pady=10)
 
-            message_entry = tk.Entry(private_chat_window)
-            message_entry.pack(fill='x', padx=5, pady=5)
+            input_frame = tk.Frame(private_chat_window, bg="#ffcccc")
+            input_frame.pack(fill='x', padx=10, pady=5)
 
-            send_button = tk.Button(private_chat_window, text="Send", command=lambda: self.send_private_message(chat_history, message_entry, sender))
-            send_button.pack(pady=5)
+            message_entry = tk.Entry(input_frame, bg="#ffffff", fg="#333333",  font=("Helvetica", 9))
+            message_entry.pack(side='left', fill='x', expand=True)
+
+            send_icon = Image.open("send.png")
+            resized_image = send_icon.resize((20, 20), Image.LANCZOS) 
+            send_image = ImageTk.PhotoImage(resized_image)  
+
+            send_button = tk.Button(input_frame, image=send_image, command=lambda: self.send_private_message(chat_history, message_entry, sender), bg="#ff9999", fg="#333333")
+            send_button.image = send_image 
+            send_button.pack(side='right')
+
 
             message_entry.bind("<Return>", lambda event: self.send_private_message(chat_history, message_entry, sender))
 
-            self.private_chat_windows[sender] = (chat_history, message_entry, private_chat_window)  # Store the window reference
+            self.private_chat_windows[sender] = (chat_history, message_entry, private_chat_window) 
 
             private_chat_window.protocol("WM_DELETE_WINDOW", lambda: self.close_private_chat(sender))
 
             timestamp = self.get_timestamp()
             chat_history.config(state='normal')
             chat_history.insert('end', f"{timestamp} [{sender}]: {chat_message}\n")
-            chat_history.yview('end')  # This enables auto-scrolling
+            chat_history.yview('end') 
             chat_history.config(state='disabled')
 
         else:
-            chat_history, _, _ = self.private_chat_windows[sender]  # Adjust to get the window reference
+            chat_history, _, _ = self.private_chat_windows[sender] 
             timestamp = self.get_timestamp()
             chat_history.config(state='normal')
             chat_history.insert('end', f"{timestamp} [{sender}]: {chat_message}\n")
             chat_history.yview('end')
             chat_history.config(state='disabled')
-
+            
     def close_private_chat(self, sender):
         if sender in self.private_chat_windows:
             if messagebox.askyesno("Confirm Exit", f"Are you sure you want to close the chat with {sender}?"):
-                private_chat_window = self.private_chat_windows[sender]
+                chat_history, message_entry, private_chat_window = self.private_chat_windows[sender]
                 private_chat_window.destroy()
                 del self.private_chat_windows[sender] 
-
-
 
     def update_chat_history(self, message):
         self.chat_history.config(state='normal')
