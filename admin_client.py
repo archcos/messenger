@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext
+from tkinter import scrolledtext, messagebox
 import socket
 import threading
 import time
@@ -28,8 +28,12 @@ class AdminApplication:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.private_chat_windows = {}
-
+        self.master.protocol("WM_DELETE_WINDOW", self.confirm_exit)
         threading.Thread(target=self.connect_to_server, daemon=True).start()
+        
+    def confirm_exit(self):
+        if messagebox.askyesno("Confirm Exit", "Are you sure you want to exit?"):
+            self.master.destroy()
 
     def connect_to_server(self):
         while True:
@@ -62,13 +66,10 @@ class AdminApplication:
                 if message:
                     if message.startswith("/user"):
                         self.show_private_chat(message)  # Handle private message
-                        print(f"user {message}")
                     elif message.startswith("/ismsg"):
                         self.show_private_chat(message)  # Handle admin messages
-                        print(f"ism {message}")
                     else:
                         self.update_chat_history(message[9:] + "\n")
-                        print("Chat" +message[9:])
             except ConnectionResetError:
                 self.update_chat_history("Disconnected from server.\n")
                 break
@@ -82,9 +83,7 @@ class AdminApplication:
     def send_private_message(self, chat_history, message_entry, recipient):
             timestamp = self.get_timestamp()
             message = message_entry.get()
-            print(f"ms {message}, ss {recipient}")
             if message:
-                print(recipient)  # Ensure the message is not empty
                 self.socket.send(f"/private:{recipient}:{message}".encode('utf-8'))  # Send the private message
                 chat_history.config(state='normal')
                 chat_history.insert('end', f"{timestamp} [IS Admin]: " + message + "\n")
@@ -93,14 +92,11 @@ class AdminApplication:
 
     def show_private_chat(self, message):
         parts = message.split(":")
-        print(message)
         if len(parts) < 2:
             return  # Unexpected message format
 
         sender = parts[1].replace("Private message from ", "").strip()
         chat_message = parts[2]
-        print(f"sender {sender}")
-        print(message)
 
         if sender not in self.private_chat_windows:
             private_chat_window = tk.Toplevel(self.master)
@@ -117,23 +113,32 @@ class AdminApplication:
 
             message_entry.bind("<Return>", lambda event: self.send_private_message(chat_history, message_entry, sender))
 
-            self.private_chat_windows[sender] = (chat_history, message_entry)
+            self.private_chat_windows[sender] = (chat_history, message_entry, private_chat_window)  # Store the window reference
 
             private_chat_window.protocol("WM_DELETE_WINDOW", lambda: self.close_private_chat(sender))
+
+            timestamp = self.get_timestamp()
+            chat_history.config(state='normal')
+            chat_history.insert('end', f"{timestamp} [{sender}]: {chat_message}\n")
+            chat_history.yview('end')  # This enables auto-scrolling
+            chat_history.config(state='disabled')
+
         else:
-            chat_history, _ = self.private_chat_windows[sender]
+            chat_history, _, _ = self.private_chat_windows[sender]  # Adjust to get the window reference
+            timestamp = self.get_timestamp()
+            chat_history.config(state='normal')
+            chat_history.insert('end', f"{timestamp} [{sender}]: {chat_message}\n")
+            chat_history.yview('end')
+            chat_history.config(state='disabled')
 
-        timestamp = self.get_timestamp()
-        chat_history.config(state='normal')
-        chat_history.insert('end', f"{timestamp} [{sender}]: {chat_message}\n")
-        chat_history.config(state='disabled')
+    def close_private_chat(self, sender):
+        if sender in self.private_chat_windows:
+            if messagebox.askyesno("Confirm Exit", f"Are you sure you want to close the chat with {sender}?"):
+                private_chat_window = self.private_chat_windows[sender]
+                private_chat_window.destroy()
+                del self.private_chat_windows[sender] 
 
- 
 
-    def close_private_chat(self, recipient):
-        """Close the private chat window."""
-        if recipient in self.private_chat_windows:
-            del self.private_chat_windows[recipient]
 
     def update_chat_history(self, message):
         self.chat_history.config(state='normal')

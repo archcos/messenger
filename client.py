@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext, simpledialog
+from tkinter import scrolledtext, simpledialog, messagebox
 import socket
 import threading
 from datetime import datetime
@@ -23,7 +23,7 @@ class MainApplication:
         btn2 = tk.Button(self.side_panel, text="Contact IS", command=self.open_is_chat)
         btn2.pack(pady=10)
 
-        btn3 = tk.Button(self.side_panel, text="Exit", command=master.quit)
+        btn3 = tk.Button(self.side_panel, text="Exit", command=self.confirm_exit)
         btn3.pack(pady=10)
 
         self.chat_frame = tk.Frame(master)
@@ -44,8 +44,12 @@ class MainApplication:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         self.private_chat_windows = {}
-
+        self.master.protocol("WM_DELETE_WINDOW", self.confirm_exit)
         threading.Thread(target=self.connect_to_server, daemon=True).start()
+
+    def confirm_exit(self):
+        if messagebox.askyesno("Confirm Exit", "Are you sure you want to exit?"):
+            self.master.destroy()
 
     def connect_to_server(self):
         while True:
@@ -95,9 +99,7 @@ class MainApplication:
                     self.receive_user_list(message[6:])
                 elif message.startswith("/ismsg"):
                     self.show_is_chat(message)
-                    print(f"msg {message}")
                 elif message.startswith("IS"):
-                    print(f"IS {message}")
                     self.update_is_chat_history(message + "\n")
                 else:
                     self.update_chat_history(message + "\n")
@@ -141,8 +143,6 @@ class MainApplication:
 
     def send_is_message(self):
         message = self.is_message_entry.get()
-        timestamp = self.get_timestamp()
-        print(message)
         if message:
             full_message = f"[{self.username}]: {message}"
             self.update_is_chat_history(full_message + "\n")
@@ -158,49 +158,6 @@ class MainApplication:
 
     def show_is_chat(self, message):
         self.update_is_chat_history(message + "\n")
-
-    def handle_private_message(self, message):
-        parts = message.split(": ", 1)
-        if len(parts) < 2:
-            return
-
-        sender = parts[0].strip()
-        chat_message = parts[1].strip()
-
-        if sender not in self.private_chat_windows:
-            private_chat_window = tk.Toplevel(self.master)
-            private_chat_window.title(f"Private Chat with {sender}")
-
-            chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled')
-            chat_history.pack(fill='both', expand=True)
-
-            message_entry = tk.Entry(private_chat_window)
-            message_entry.pack(fill='x', padx=5, pady=5)
-
-            send_button = tk.Button(private_chat_window, text="Send", command=lambda: self.send_private_message(chat_history, message_entry, sender))
-            send_button.pack(pady=5)
-
-            message_entry.bind("<Return>", lambda event: self.send_private_message(chat_history, message_entry, sender))
-
-            self.private_chat_windows[sender] = (chat_history, message_entry)
-
-            private_chat_window.protocol("WM_DELETE_WINDOW", lambda: self.close_private_chat(sender))
-        else:
-            chat_history, _ = self.private_chat_windows[sender]
-
-        chat_history.config(state='normal')
-        chat_history.insert('end', f"{sender}: {chat_message}\n")
-        chat_history.config(state='disabled')
-
-    def send_private_message(self, chat_history, message_entry, recipient):
-        message = message_entry.get()
-        if message:
-            full_message = f"/private {recipient}:{message}"
-            threading.Thread(target=self.send_to_server, args=(full_message,), daemon=True).start()
-            chat_history.config(state='normal')
-            chat_history.insert('end', f"Me: {message}\n")
-            chat_history.config(state='disabled')
-            message_entry.delete(0, 'end')
 
     def close_private_chat(self, recipient):
         if recipient in self.private_chat_windows:
