@@ -3,6 +3,7 @@ from tkinter import messagebox
 import bcrypt
 from PIL import Image, ImageTk 
 from admin_client import AdminApplication 
+import ctypes
 
 ADMIN_USERNAME = "tcoisd"
 ADMIN_PASSWORD_HASH = bcrypt.hashpw("13952".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -59,4 +60,7 @@ login_window.bind('<Return>', lambda event: login())
 login_button = tk.Button(login_window, text="Login", command=login, bg="#FF6666", fg="white", font=("Arial", 12, "bold"), relief="raised")
 login_button.pack(pady=20)
 
+myappid = 'archcos.locallinks.subproduct.version'
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+login_window.iconbitmap('logobg.ico')
 login_window.mainloop()

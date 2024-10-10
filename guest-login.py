@@ -1,10 +1,14 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk, PhotoImage
 import socket
 from PIL import Image, ImageTk  
 from client import MainApplication 
+import random
+import string
+import ctypes
 
-
+def generate_random_character():
+    return random.choice(string.ascii_letters + string.digits)
 
 def start_client(username):
     guest_login_window.destroy() 
@@ -12,56 +16,23 @@ def start_client(username):
     app = MainApplication(main_window, username)  
     main_window.mainloop() 
 
-def request_user_list():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    print(sock)
-    sock.settimeout(5)  # Set a timeout of 5 seconds
-    try:
-        server_address = ('172.16.10.155', 53214)
-        sock.connect(server_address)
-        sock.sendall("/users".encode('utf-8'))
-        user_list = sock.recv(1024).decode('utf-8')
-        print(f"User list received: {user_list}")  # For debugging
-        return user_list
-    except socket.timeout:
-        messagebox.showerror("Error", "Request to server timed out.")
-        return ""
-    except ConnectionRefusedError:
-        messagebox.showerror("Error", "Connection refused. Is the server running?")
-        return ""
-    except Exception as e:
-        messagebox.showerror("Error", f"An error occurred: {e}")
-        return ""
-    finally:
-        sock.close()
-
 def login():
     username = username_entry.get().strip()
-    
-    
-    # Request the user list from the server
-    user_list = request_user_list()
+    selected_option = dropdown.get()
+    r = generate_random_character()
+    r2 = generate_random_character()
 
-    if not user_list or len(user_list) == 1:
-        # No users connected or invalid response, allow login directly
-        messagebox.showinfo("Login", f"Logged in as: {username}")
-        start_client(username)
+    if selected_option == "":
+        messagebox.showerror("Error", "Please select a valid username from the dropdown.")
         return
-
-    for user in user_list[1:]:
-        if user.strip().lower() == username.lower():
-            messagebox.showerror("Error", "Username is already connected. Please choose another.")
-            return
-
-    if username.lower() == "is admin":
-        messagebox.showerror("Error", "Username 'IS Admin' is not allowed.")
-        return
-
-    if not username: 
+    
+    full_username = f"{selected_option}{r}{r2}-{username}"
+    
+    if username == "":
         username = socket.gethostname()
-
-    messagebox.showinfo("Login", f"Logged in as: {username}")
-    start_client(username)
+    
+    messagebox.showinfo("Login", f"Logged in as: {full_username}")
+    start_client(full_username)
 
 guest_login_window = tk.Tk()
 guest_login_window.title("Guest Login")
@@ -69,7 +40,7 @@ guest_login_window.geometry("300x300")
 guest_login_window.resizable(False, False)
 
 original_logo = Image.open("logo.png")  
-resized_logo = original_logo.resize((150, 150), Image.LANCZOS) 
+resized_logo = original_logo.resize((100, 100), Image.LANCZOS) 
 logo = ImageTk.PhotoImage(resized_logo)
 
 logo_label = tk.Label(guest_login_window, image=logo)
@@ -78,8 +49,15 @@ logo_label.pack()
 name_label = tk.Label(guest_login_window, text="LocalLinks", font=("Arial", 12, "bold", "italic"), fg="#C70000")
 name_label.pack()
 
-username_label = tk.Label(guest_login_window, text ="Enter your username:", font=("Arial", 10))
-username_label.pack(pady=10)
+dept_label = tk.Label(guest_login_window, text ="Select Department:", font=("Arial", 10))
+dept_label.pack(pady=(10, 0))  
+
+options = ["", "ASD", "CALP", "CRD", "FAD", "HRD", "SA", "VSD", "OTHERS"]
+dropdown = ttk.Combobox(guest_login_window, values=options, state="readonly")
+dropdown.pack(pady=(10, 0))   
+
+username_label = tk.Label(guest_login_window, text ="Create Username:", font=("Arial", 10))
+username_label.pack(pady=(10, 0))  
 
 username_entry = tk.Entry(guest_login_window, font=("Arial", 10), bg="#FFE6E6", borderwidth=2, relief="groove")
 username_entry.pack(pady=5)
@@ -89,4 +67,7 @@ guest_login_window.bind('<Return>', lambda event: login())
 guest_button = tk.Button(guest_login_window, text="Login as Guest", command=login, bg="#FF4D4D", fg="white", font=("Arial", 12, "bold"), relief="raised")
 guest_button.pack(pady=10)
 
+myappid = 'archcos.locallinks.subproduct.version'
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+guest_login_window.iconbitmap('logobg.ico')
 guest_login_window.mainloop()

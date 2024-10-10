@@ -15,6 +15,7 @@ class AdminApplication:
         master.geometry("350x500")
         master.configure(bg="#ffcccc")  
         master.resizable(False, False) 
+        master.iconbitmap('logobg.ico')
 
         self.chat_frame = tk.Frame(master, bg="#ffcccc")
         self.chat_frame.pack(side='right', fill='both', expand=True)
@@ -47,7 +48,7 @@ class AdminApplication:
         threading.Thread(target=self.connect_to_server, daemon=True).start()
 
     def confirm_exit(self):
-        if messagebox.askyesno("Confirm Exit", "Are you sure you want to exit?"):
+        if messagebox.showwarning("Confirm Exit", "Are you sure you want to exit?"):
             self.master.destroy()
 
     def connect_to_server(self):
@@ -116,6 +117,7 @@ class AdminApplication:
             private_chat_window.title(f"Private Chat with {sender}")
             private_chat_window.configure(bg="#ffcccc") 
             private_chat_window.geometry("350x500") 
+            private_chat_window.iconbitmap('logobg.ico')
 
             chat_history = scrolledtext.ScrolledText(private_chat_window, state='disabled', bg="#ffffff", fg="#333333",  font=("Helvetica", 9))
             chat_history.pack(fill='both', expand=True, padx=10, pady=10)
@@ -157,7 +159,7 @@ class AdminApplication:
             
     def close_private_chat(self, sender):
         if sender in self.private_chat_windows:
-            if messagebox.askyesno("Confirm Exit", f"Are you sure you want to close the chat with {sender}?"):
+            if messagebox.showwarning("Confirm Exit", f"Are you sure you want to close the chat with {sender}?"):
                 chat_history, message_entry, private_chat_window = self.private_chat_windows[sender]
                 private_chat_window.destroy()
                 del self.private_chat_windows[sender] 

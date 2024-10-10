@@ -1,10 +1,11 @@
 import tkinter as tk
-from tkinter import scrolledtext, simpledialog, messagebox, ttk
+from tkinter import scrolledtext, simpledialog, messagebox, ttk, PhotoImage
 import socket
 import threading
 from datetime import datetime
 import time
 from PIL import Image, ImageTk
+import ctypes
 
 class MainApplication:
     def __init__(self, master, username):
@@ -14,6 +15,9 @@ class MainApplication:
         master.geometry("400x500") 
         master.configure(bg="#ffcccc") 
         master.resizable(False, False) 
+        myappid = 'archcos.locallinks.subproduct.version'
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        master.iconbitmap('logobg.ico')
 
         style = ttk.Style()
         style.configure("RoundedButton.TButton", 
@@ -86,7 +90,7 @@ class MainApplication:
         threading.Thread(target=self.connect_to_server, daemon=True).start()
 
     def confirm_exit(self):
-        if messagebox.askyesno("Confirm Exit", "Are you sure you want to exit?"):
+        if messagebox.showwarning("Confirm Exit", "Are you sure you want to exit?"):
             self.master.destroy()
 
     def connect_to_server(self):
@@ -134,6 +138,7 @@ class MainApplication:
                 message = self.socket.recv(1024).decode('utf-8')
                 if message.startswith("/users"):
                     self.receive_user_list(message[6:])
+                    print(message)
                 elif message.startswith("/ismsg"):
                     self.show_is_chat(message)
                 elif message.startswith("IS"):
@@ -166,6 +171,8 @@ class MainApplication:
         self.is_chat_window.title("Chat with IS Admin")
         self.is_chat_window.configure(bg="#ffcccc") 
         self.is_chat_window.geometry("400x500") 
+        self.is_chat_window.iconbitmap('logobg.ico')
+
 
         self.is_chat_history = scrolledtext.ScrolledText(self.is_chat_window, state='disabled', bg="#ffffff", fg="#333333", font=("Helvetica", 9))
         self.is_chat_history.pack(fill='both', expand=True, padx=10, pady=10)
@@ -212,4 +219,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     username = simpledialog.askstring("Username", "Enter your username:")
     app = MainApplication(root, username)
+    myappid = 'archcos.locallinks.subproduct.version'
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    root.iconbitmap('logobg.ico')
     root.mainloop()
